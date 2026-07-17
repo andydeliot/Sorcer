@@ -41,7 +41,7 @@ pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 20)
 from random import randint
 
-fenetre = pygame.display.set_mode((875, 875))
+fenetre = pygame.display.set_mode((1000, 875))
 pygame.display.set_caption("Sorcer 2")
 
 
@@ -212,7 +212,7 @@ while running:
 
     espace = 30
     azerty = "azertyuiopqsdfghjklmwxcvbn"
-    colonne2_x = 440  # colonne des sorts accessibles via Maj + lettre (indices 26 à 51)
+    colonne2_x = 500  # colonne des sorts accessibles via Maj + lettre (indices 26 à 51)
 
     x, y = 0, 25
     couleur = (255, 255, 255)
