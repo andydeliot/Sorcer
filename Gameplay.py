@@ -381,7 +381,7 @@ class Acceleration(Spell):
     """ Accélère les lancers (x2) et le lag (/2) du joueur ciblé ; annule Slow. """
     def __init__(self):
         Spell.__init__(self, "Speed up")
-        self.duree_acceleration = 300
+        self.duree_acceleration = 800
 
     def effet(self, l, c, p):
         c.time_acceleration = self.duree_acceleration
@@ -397,7 +397,7 @@ class Ralentissement(Spell):
     """ Ralentit les lancers (/2) et augmente les cooldowns (x2) du joueur ciblé ; annule Acceleration. """
     def __init__(self):
         Spell.__init__(self, "Slow")
-        self.duree_slow = 300
+        self.duree_slow = 1000
 
     def effet(self, l, c, p):
         c.time_slow = self.duree_slow
@@ -457,7 +457,7 @@ class Deviation(Spell):
     """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure (voir loop()). """
     def __init__(self):
         Spell.__init__(self, "Deviation")
-        self.duree_deviation = 400
+        self.duree_deviation = 600
 
     def effet(self, l, c, p):
         c.time_deviation = self.duree_deviation
@@ -482,7 +482,7 @@ class Bouclier(Spell):
     """ Absorbe jusqu'à 25 points de dégâts pendant sa durée, même partiellement consommé. """
     def __init__(self):
         Spell.__init__(self, "Shield")
-        self.duree_shield = 300
+        self.duree_shield = 500
 
     def effet(self, l, c, p):
         c.shield = 25
@@ -497,13 +497,13 @@ class Bouclier(Spell):
                 c.shield = 0
 
 class ConcentrationMagique(Spell):
-    """ Inflige 10 dégâts par sort de la cible actuellement disponible (hors cooldown). """
+    """ Inflige 5 dégâts par sort de la cible actuellement disponible (hors cooldown). """
     def __init__(self):
         Spell.__init__(self, "Magic concentration")
 
     def effet(self, l, c, p):
         dispo = sum(1 for s in c.s if s.time_cooldown == 0)
-        c.dammage(10 * dispo)
+        c.dammage(5 * dispo)
 
 class PeineDeMort(Spell):
     """ Après un très long délai, tue la cible sauf si elle est invincible, si le sort a été relancé
@@ -555,13 +555,13 @@ class RayonDeSoleil(Spell):
             self.charge = False
 
 class ConcentrationSorts(Spell):
-    """ Inflige 100 dégâts par sort actuellement en cours de lancement (start passé, pas encore terminé). """
+    """ Inflige 75 dégâts par sort actuellement en cours de lancement (start passé, pas encore terminé). """
     def __init__(self):
         Spell.__init__(self, "Magical concentration")
 
     def effet(self, l, c, p):
         en_cours = sum(1 for player in p if player.spell is not None and player.spell.started and not player.spell.ended)
-        c.dammage(100 * en_cours)
+        c.dammage(75 * en_cours)
 
 class Repetition(Spell):
     """ Redéclenche l'effet du dernier sort du lanceur, sans se soucier de son cooldown. """
@@ -639,7 +639,7 @@ class Canalisation(Spell):
     """ Pendant sa durée, soigne la cible à chaque fois qu'un joueur (n'importe lequel) lance un sort. """
     def __init__(self):
         Spell.__init__(self, "Channeling")
-        self.duree_canalisation = 400
+        self.duree_canalisation = 800
 
     def effet(self, l, c, p):
         c.time_canalisation = self.duree_canalisation
@@ -657,7 +657,7 @@ class Aveuglement(Spell):
     """ Pendant sa durée, la cible ne peut viser qu'elle-même (voir loop()). """
     def __init__(self):
         Spell.__init__(self, "Blindness")
-        self.duree_aveuglement = 300
+        self.duree_aveuglement = 800
 
     def effet(self, l, c, p):
         c.time_aveuglement = self.duree_aveuglement
@@ -693,7 +693,7 @@ class Marque(Spell):
     """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 20% pendant sa durée. """
     def __init__(self):
         Spell.__init__(self, "Mark")
-        self.duree_marque = 300
+        self.duree_marque = 800
         self.multiplicateur_marque = 1.2
 
     def effet(self, l, c, p):
@@ -706,7 +706,7 @@ class Marque(Spell):
             c.time_marque -= 1
 
 class Prolongation(Spell):
-    """ Prolonge de 200 la durée restante de chaque passif actuellement actif sur la cible. """
+    """ Prolonge de 500 la durée restante de chaque passif actuellement actif sur la cible. """
     attributs_prolongeables = [
         "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
         "time_treve", "time_clone", "time_regeneration", "time_acceleration",
@@ -717,7 +717,7 @@ class Prolongation(Spell):
 
     def __init__(self):
         Spell.__init__(self, "Prolongation")
-        self.bonus_prolongation = 200
+        self.bonus_prolongation = 500
 
     def effet(self, l, c, p):
         for attr in Prolongation.attributs_prolongeables:
@@ -735,7 +735,7 @@ spells = [Boule_feu, Laser, Poison, VolDeVie, Soin, Vitesse, Interdiction, LienS
 class Sorcer:
     def __init__(self, spells):
         self.s = [s() for s in spells] # spells.
-        self.pv_max = 800
+        self.pv_max = 1000
         self.pv = self.pv_max
         self.spell = None
         self.last_spell = None
