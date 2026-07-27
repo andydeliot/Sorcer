@@ -39,9 +39,11 @@ threading.Thread(target=recv_loop, daemon=True).start()
 
 pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 20)
+small_font = pygame.font.SysFont('Comic Sans MS', 16)
+header_font = pygame.font.SysFont('Comic Sans MS', 24)
 from random import randint
 
-fenetre = pygame.display.set_mode((1000, 900))
+fenetre = pygame.display.set_mode((1800, 900))
 pygame.display.set_caption("Sorcer 2")
 
 
@@ -186,77 +188,59 @@ while running:
 
 
     fenetre.fill((0,0,0))
-    l, h = 36, 30
-    color = (0, 0, 255)
-    if cible == 0:
-        pygame.draw.rect(fenetre, color, (0, 0, l, h))
-    if cible == 1:
-        pygame.draw.rect(fenetre, color, (250, 0, l, h))
-    if cible == 2:
-        pygame.draw.rect(fenetre, color, (500, 0, l, h))
-    if cible == 3:
-        pygame.draw.rect(fenetre, color, (750, 0, l, h))
 
-    text_surface = my_font.render(str(f"{p1.pv}"), False, (255, 255, 255))
-    fenetre.blit(text_surface, (0,0))
-    text_surface = my_font.render(str(f"{p2.pv}"), False, (255, 255, 255))
-    fenetre.blit(text_surface, (250,0))
-    text_surface = my_font.render(str(f"{p3.pv}"), False, (255, 255, 255))
-    fenetre.blit(text_surface, (500,0))
-    text_surface = my_font.render(str(f"{p4.pv}"), False, (255, 255, 255))
-    fenetre.blit(text_surface, (750,0))
-    if p1.spell is not None:
-        time_end = p1.spell.tc + p1.spell.d + p1.spell.tl - p1.spell.time_charge - p1.spell.duree - p1.spell.time_lag
-        text_surface = my_font.render(str(f"{p1.spell.n} end in {time_end}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (80, 0))
-        if p1.cible is p1:
-            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (0, 10), 2)
-        if p1.cible is p2:
-            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (250, 10), 2)
-        if p1.cible is p3:
-            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (500, 10), 2)
-        if p1.cible is p4:
-            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (750, 10), 2)
-    if p2.spell is not None:
-        text_surface = my_font.render(str(f"{p2.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (330, 0))
-        if p2.cible is p1:
-            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (0, 10), 2)
-        if p2.cible is p2:
-            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (250, 10), 2)
-        if p2.cible is p3:
-            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (500, 10), 2)
-        if p2.cible is p4:
-            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (750, 10), 2)
-    if p3.spell is not None:
-        text_surface = my_font.render(str(f"{p3.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (580, 0))
-        if p3.cible is p1:
-            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (0, 10), 2)
-        if p3.cible is p2:
-            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (250, 10), 2)
-        if p3.cible is p3:
-            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (500, 10), 2)
-        if p3.cible is p4:
-            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (750, 10), 2)
-    if p4.spell is not None:
-        text_surface = my_font.render(str(f"{p4.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (830, 0))
-        if p4.cible is p1:
-            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (0, 10), 2)
-        if p4.cible is p2:
-            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (250, 10), 2)
-        if p4.cible is p3:
-            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (500, 10), 2)
-        if p4.cible is p4:
-            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (750, 10), 2)
+    players = [p1, p2, p3, p4]
+    names = ["You", "Your ally", "First enemy", "Second enemy"]
+    panel_width = 380
+    panel_height = 220
+    panel_margin = 18
+    panel_y = 20
+    spells_panel_width = 800
+    spells_panel_x = 20
 
-    for i, player in enumerate([p1, p2, p3, p4]):
-        base_x = i * 250
-        labels = get_effect_labels(player)
-        for j, label in enumerate(labels):
-            text_surface = my_font.render(label, False, (255, 255, 255))
-            fenetre.blit(text_surface, (base_x, 18 + j * 18))
+    for i, player in enumerate(players):
+        if i < 2:
+            x = spells_panel_x + spells_panel_width + 120
+            y = panel_y + i * (panel_height + panel_margin)
+        else:
+            x = spells_panel_x + spells_panel_width + 120 + panel_width + panel_margin
+            y = panel_y + (i - 2) * (panel_height + panel_margin)
+        is_target = i == cible
+        border_color = (0, 180, 255) if is_target else (120, 120, 120)
+        pygame.draw.rect(fenetre, (30, 30, 30), (x, y, panel_width, panel_height))
+        pygame.draw.rect(fenetre, border_color, (x, y, panel_width, panel_height), 3)
+
+        title_surface = header_font.render(names[i], False, (255, 255, 255))
+        fenetre.blit(title_surface, (x + 10, y + 10))
+
+        hp_text = f"PV: {player.pv}/{player.pv_max}"
+        hp_surface = my_font.render(hp_text, False, (255, 255, 255))
+        fenetre.blit(hp_surface, (x + 10, y + 45))
+
+        hp_ratio = max(0, min(1, player.pv / player.pv_max)) if player.pv_max > 0 else 0
+        bar_width = 180
+        bar_height = 12
+        bar_x = x + 10
+        bar_y = y + 75
+        pygame.draw.rect(fenetre, (80, 80, 80), (bar_x, bar_y, bar_width, bar_height))
+        pygame.draw.rect(fenetre, (0, 220, 0), (bar_x, bar_y, int(bar_width * hp_ratio), bar_height))
+
+        effect_labels = get_effect_labels(player)
+        effect_y = y + 100
+        for j, label in enumerate(effect_labels[:5]):
+            effect_surface = small_font.render(label, False, (255, 255, 255))
+            fenetre.blit(effect_surface, (x + 10, effect_y + j * 18))
+
+        if player.spell is not None:
+            spell_text = f"Spell: {player.spell.n}"
+            if player.spell.tc + player.spell.d + player.spell.tl > 0:
+                time_end = player.spell.tc + player.spell.d + player.spell.tl - player.spell.time_charge - player.spell.duree - player.spell.time_lag
+                spell_text += f" ({time_end})"
+            spell_surface = small_font.render(spell_text, False, (255, 220, 120))
+            fenetre.blit(spell_surface, (x + 10, y + 190))
+        else:
+            no_spell_surface = small_font.render("No spell in progress", False, (180, 180, 180))
+            fenetre.blit(no_spell_surface, (x + 10, y + 190))
 
     if spell_description:
         text_surface = my_font.render(f"Description : {spell_description}", False, (255, 255, 255))
