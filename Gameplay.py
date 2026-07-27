@@ -21,6 +21,7 @@ class Spell:
         self.tc = tc  # Temps de charge
         self.d = d  # Durée
         self.tl = tl  # Temps de lag
+        self.description = self._build_description()
 
         self.time_cooldown = 0
         self.time_charge = 0
@@ -35,6 +36,12 @@ class Spell:
         self.duree = 0
         self.ended = False
         self.time_lag = 0
+
+    def _build_description(self):
+        doc = self.__class__.__doc__
+        if doc:
+            return " ".join(line.strip() for line in doc.strip().splitlines() if line.strip())
+        return self.n
     
     def start(self, l, c, p):
         """ Définir ici que faire au lancement du sort. """
@@ -553,6 +560,7 @@ class PeineDeMort(Spell):
                 c.pv = 0
 
 class Esprit(Spell):
+    """ Inflige 200 dégâts à la cible pour chaque joueur mort dans la partie. """
     def __init__(self):
         Spell.__init__(self, "Spirit")
 

@@ -50,6 +50,8 @@ running = True
 p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
 cible = 2
 msg = ""
+spell_description = ""
+space_pressed = False
 
 def get_effect_labels(player):
     labels = []
@@ -103,7 +105,9 @@ while running:
         elif event.type == pygame.KEYDOWN:
             try:
                 base = None
-                if event.key == K_a:
+                if event.key == K_SPACE:
+                    space_pressed = True
+                elif event.key == K_a:
                     base = 0
                 elif event.key == K_z:
                     base = 1
@@ -165,9 +169,20 @@ while running:
                 if base is not None:
                     # Maj + lettre -> les 26 sorts suivants (indices 26 à 51).
                     maj = pygame.key.get_mods() & pygame.KMOD_SHIFT
-                    msg = base + 26 if maj else base
+                    spell_index = base + 26 if maj else base
+                    if space_pressed:
+                        if 0 <= spell_index < len(p1.s):
+                            spell_description = p1.s[spell_index].description
+                        else:
+                            spell_description = ""
+                    else:
+                        msg = spell_index
+                        spell_description = ""
             except IndexError:
                 print(event.key)
+        elif event.type == pygame.KEYUP:
+            if event.key == K_SPACE:
+                space_pressed = False
 
 
     fenetre.fill((0,0,0))
@@ -243,6 +258,9 @@ while running:
             text_surface = my_font.render(label, False, (255, 255, 255))
             fenetre.blit(text_surface, (base_x, 18 + j * 18))
 
+    if spell_description:
+        text_surface = my_font.render(f"Description : {spell_description}", False, (255, 255, 255))
+        fenetre.blit(text_surface, (20, 760))
 
     espace = 30
     azerty = "azertyuiopqsdfghjklmwxcvbn"

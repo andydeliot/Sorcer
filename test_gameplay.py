@@ -20,6 +20,12 @@ def make_sorcer():
     return Sorcer([])
 
 
+def test_spell_description_is_available_from_docstring():
+    spell = Boule_feu()
+    assert spell.description is not None
+    assert "dégâts" in spell.description.lower() or "damage" in spell.description.lower()
+
+
 @pytest.fixture
 def caster():
     return make_sorcer()
