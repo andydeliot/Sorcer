@@ -526,13 +526,13 @@ class Bouclier(Spell):
                 c.shield = 0
 
 class ConcentrationMagique(Spell):
-    """ Inflige 5 dégâts par sort de la cible actuellement disponible (hors cooldown). """
+    """ Soigne 5 dégâts par sort de la cible actuellement disponible (hors cooldown). """
     def __init__(self):
         Spell.__init__(self, "Magic concentration")
 
     def effet(self, l, c, p):
         dispo = sum(1 for s in c.s if s.time_cooldown == 0)
-        c.dammage(5 * dispo)
+        c.heal(5 * dispo)
 
 class PeineDeMort(Spell):
     """ Après un très long délai, tue la cible sauf si elle est invincible, si le sort a été relancé
@@ -720,11 +720,11 @@ class Tempo(Spell):
             s.c = max(200, s.c - 1000)
 
 class Marque(Spell):
-    """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 20% pendant sa durée. """
+    """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 100% pendant sa durée. """
     def __init__(self):
         Spell.__init__(self, "Mark")
         self.duree_marque = 800
-        self.multiplicateur_marque = 1.2
+        self.multiplicateur_marque = 2.0
 
     def effet(self, l, c, p):
         c.time_marque = self.duree_marque
