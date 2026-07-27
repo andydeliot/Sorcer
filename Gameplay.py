@@ -14,6 +14,7 @@ def get_ally(player, p):
 
 
 class Spell:
+    """Classe de base pour les sorts avec cooldown, temps de charge, durée et lag."""
     def __init__(self, n, c=cooldown_base, tc=200, d=1, tl=100):
         self.n = n  # Nom
         self.c = c  # Cooldown
@@ -82,6 +83,7 @@ class Spell:
             
 
 class Boule_feu(Spell):
+    """Inflige 25 points de dégâts au lanceur et 125 points de dégâts à la cible."""
     def __init__(self):
         Spell.__init__(self, "Fireball", tc=100)
 
@@ -90,6 +92,7 @@ class Boule_feu(Spell):
         c.dammage(125)
 
 class Laser(Spell):
+    """Inflige 1 point de dégâts par tick à la cible pendant 200 ticks."""
     def __init__(self):
         Spell.__init__(self, "Laser", d=200)
 
@@ -97,6 +100,7 @@ class Laser(Spell):
         c.dammage(1)
 
 class Poison(Spell):
+    """Applique un poison qui inflige 25 dégâts toutes les 100 unités de temps pendant 1000 ticks."""
     def __init__(self):
         Spell.__init__(self, "Poison")
         self.duree_poison = 1000
@@ -113,6 +117,7 @@ class Poison(Spell):
             c.dammage(25)
 
 class VolDeVie(Spell):
+    """Vole de la vie à la cible en infligeant 1 dégât et en soignant 1 point par tick pendant 50 ticks."""
     def __init__(self):
         Spell.__init__(self, "Life steal", d=50)
 
@@ -121,6 +126,7 @@ class VolDeVie(Spell):
         l.heal(1)
 
 class Soin(Spell):
+    """Soigne la cible de 100 points et supprime l'effet poison."""
     def __init__(self):
         Spell.__init__(self, "Heal")
 
@@ -129,6 +135,7 @@ class Soin(Spell):
         c.time_poison = 0
 
 class Vitesse(Spell):
+    """Réduit de moitié le cooldown de tous les sorts de la cible."""
     def __init__(self):
         Spell.__init__(self, "Speed")
 
@@ -137,6 +144,7 @@ class Vitesse(Spell):
             s.time_cooldown = int(s.time_cooldown / 2)
 
 class Interdiction(Spell):
+    """Empêche la cible d'utiliser le sort qu'elle est en train de lancer."""
     def __init__(self):
         Spell.__init__(self, "Interdiction", tc=0)
         
@@ -145,6 +153,7 @@ class Interdiction(Spell):
             c.interdit = c.spell
 
 class LienSpirituel(Spell):
+    """Crée un lien spirituel entre le lanceur et la cible pendant 800 ticks."""
     def __init__(self):
         Spell.__init__(self, "Spiritual link")
 
@@ -169,6 +178,7 @@ class LienSpirituel(Spell):
                     break
 
 class Silence(Spell):
+    """Silence la cible pendant 400 ticks."""
     def __init__(self):
         Spell.__init__(self, "Silence")
 
@@ -182,6 +192,7 @@ class Silence(Spell):
             c.time_silence -= 1
 
 class Renvoi(Spell):
+    """Active un renvoi pendant 200 ticks pour renvoyer des sorts ciblant la cible."""
     def __init__(self):
         Spell.__init__(self, "Counter", tc=50, tl=200)
 
@@ -195,6 +206,7 @@ class Renvoi(Spell):
             c.time_renvoi -= 1
 
 class Exodia(Spell):
+    """Incrémente le compteur Exodia et élimine tous les adversaires quand il atteint 5."""
     def __init__(self):
         Spell.__init__(self, "Exodia", c=4000)
 
@@ -207,6 +219,7 @@ class Exodia(Spell):
             l.nbr_exodia = 0
 
 class Multiplicateur(Spell):
+    """Inflige des dégâts croissants selon le compteur multiplicateur du lanceur."""
     def __init__(self):
         Spell.__init__(self, "Multiplier")
 
@@ -215,6 +228,7 @@ class Multiplicateur(Spell):
         l.nbr_multiplicateur += 1
 
 class TicTac(Spell):
+    """Alterne entre deux dégâts : sur les PV actuels ou sur les PV manquants de la cible."""
     def __init__(self):
         Spell.__init__(self, "TicTac")
 
@@ -225,6 +239,7 @@ class TicTac(Spell):
             c.dammage(int((c.pv_max-c.pv)*0.25))
 
 class Balance(Spell):
+    """Équilibre les PV du lanceur et de la cible en infligeant un tiers de la différence."""
     def __init__(self):
         Spell.__init__(self, "Balance")
 
@@ -233,6 +248,7 @@ class Balance(Spell):
         c.dammage((c.pv - l.pv)/3)
 
 class Renforcement(Spell):
+    """Augmente la PV maximale de la cible de 50 et la soigne de 25 points."""
     def __init__(self):
         Spell.__init__(self, "Reinforcement")
     def effet(self, l, c, p):
@@ -240,6 +256,7 @@ class Renforcement(Spell):
         c.heal(25)
 
 class Specialisation(Spell):
+    """Réduit le cooldown du dernier sort lancé et le marque comme spécialisation."""
     def __init__(self):
         Spell.__init__(self, "Specialisation")
 
@@ -249,6 +266,7 @@ class Specialisation(Spell):
             l.spell_specialisation = l.last_spell
 
 class Invincibilite(Spell):
+    """Rend la cible invincible pendant 250 ticks."""
     def __init__(self):
         Spell.__init__(self, "Invincibility", tc=0, d=250)
 
@@ -262,6 +280,7 @@ class Invincibilite(Spell):
             c.time_invincibilite -= 1
 
 class Treve(Spell):
+    """Accorde une trêve de 300 ticks au lanceur, empêchant probablement les agressions pendant sa durée."""
     def __init__(self):
         Spell.__init__(self, "Truce", tc=10)
 
@@ -275,6 +294,7 @@ class Treve(Spell):
             l.time_treve -= 1
 
 class Clone(Spell):
+    """Applique un clone à la cible pendant 600 ticks."""
     def __init__(self):
         Spell.__init__(self, "Clone")
 
@@ -288,6 +308,7 @@ class Clone(Spell):
             c.time_clone -= 1
 
 class Retour(Spell):
+    """Enregistre la vie actuelle de la cible et la restaure à la fin de la durée."""
     def __init__(self):
         Spell.__init__(self, "Timeback", tc=0, d=300)
 
@@ -308,6 +329,7 @@ class Retour(Spell):
                 c.pv = c.vie_retour
 
 class Flash(Spell):
+    """Inflige instantanément 20 dégâts à la cible."""
     def __init__(self):
         Spell.__init__(self, "Flash", tc=0, d=1)
 
@@ -315,6 +337,7 @@ class Flash(Spell):
         c.dammage(20)
 
 class Canon(Spell):
+    """Charge pendant 400 ticks puis frappe la cible pour 200 dégâts."""
     def __init__(self):
         Spell.__init__(self, "Cannon", tc=400, d=1)
     
@@ -322,6 +345,7 @@ class Canon(Spell):
         c.dammage(200)
 
 class Coagulation(Spell):
+    """Soigne la cible de 1 point à chaque tick pendant 150 ticks."""
     def __init__(self):
         Spell.__init__(self, "Coagulation", d=150)
 
@@ -329,6 +353,7 @@ class Coagulation(Spell):
         c.heal(1)
 
 class Regeneration(Spell):
+    """Applique une régénération régulière à la cible pendant 500 ticks."""
     def __init__(self):
         Spell.__init__(self, "Regeneration")
         self.duree_regeneration = 500
@@ -345,6 +370,7 @@ class Regeneration(Spell):
             c.heal(20)
 
 class Annulation(Spell):
+    """Force le sort cible à s'achever immédiatement et met son cooldown à son maximum."""
     def __init__(self):
         Spell.__init__(self, "Cancelation", tc=50)
 
@@ -355,6 +381,7 @@ class Annulation(Spell):
             c.spell.ended = True
 
 class VolDeSort(Spell):
+    """Vole le sort actuellement lancé par la cible et échange ce sort avec le lanceur."""
     def __init__(self):
         Spell.__init__(self, "Spell steal", tc=0)
 
@@ -370,6 +397,7 @@ class VolDeSort(Spell):
         c.busy = False
 
 class Earthquake(Spell):
+    """Inflige 50 dégâts à tous les joueurs présents."""
     def __init__(self):
         Spell.__init__(self, "Earthquake")
 
@@ -472,6 +500,7 @@ class Deviation(Spell):
                 c.deviation_cible = None
 
 class Baffe(Spell):
+    """Un coup rapide qui inflige 10 dégâts avec un cooldown court."""
     def __init__(self):
         Spell.__init__(self, "Quick slap", c=int(cooldown_base/4), tc=20, tl=20)
 
@@ -557,14 +586,14 @@ class RayonDeSoleil(Spell):
 class ConcentrationSorts(Spell):
     """ Inflige 75 dégâts par sort actuellement en cours de lancement (start passé, pas encore terminé). """
     def __init__(self):
-        Spell.__init__(self, "Magical concentration")
+        Spell.__init__(self, "Spell concentration")
 
     def effet(self, l, c, p):
         en_cours = sum(1 for player in p if player.spell is not None and player.spell.started and not player.spell.ended)
         c.dammage(75 * en_cours)
 
 class Repetition(Spell):
-    """ Redéclenche l'effet du dernier sort du lanceur, sans se soucier de son cooldown. """
+    """Redéclenche immédiatement l'effet du dernier sort lancé par le lanceur."""
     def __init__(self):
         Spell.__init__(self, "Repeat")
 
@@ -573,6 +602,7 @@ class Repetition(Spell):
             l.last_spell.effet(l, c, p)
 
 class Impatience(Spell):
+    """Inflige des dégâts en fonction du cooldown total des sorts de la cible."""
     def __init__(self):
         Spell.__init__(self, "Impatience")
 
