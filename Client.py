@@ -41,7 +41,7 @@ pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 20)
 from random import randint
 
-fenetre = pygame.display.set_mode((1000, 875))
+fenetre = pygame.display.set_mode((1000, 900))
 pygame.display.set_caption("Sorcer 2")
 
 
@@ -50,6 +50,50 @@ running = True
 p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
 cible = 2
 msg = ""
+
+def get_effect_labels(player):
+    labels = []
+    if player.time_invincibilite > 0:
+        labels.append(f"Invinc:{player.time_invincibilite}")
+    if player.time_aveuglement > 0:
+        labels.append(f"Blind:{player.time_aveuglement}")
+    if player.time_silence > 0:
+        labels.append(f"Silence:{player.time_silence}")
+    if player.time_deviation > 0:
+        labels.append(f"Deviation:{player.time_deviation}")
+    if player.time_treve > 0:
+        labels.append(f"Truce:{player.time_treve}")
+    if player.time_clone > 0:
+        labels.append(f"Clone:{player.time_clone}")
+    if player.time_regeneration > 0:
+        labels.append(f"Regen:{player.time_regeneration}")
+    if player.time_poison > 0:
+        labels.append(f"Poison:{player.time_poison}")
+    if player.time_death_penalty > 0:
+        labels.append(f"Death:{player.time_death_penalty}")
+    if player.time_canalisation > 0:
+        labels.append(f"Channel:{player.time_canalisation}")
+    if player.time_inversion > 0:
+        labels.append(f"Invert:{player.time_inversion}")
+    if player.time_acceleration > 0:
+        labels.append(f"Haste:{player.time_acceleration}")
+    if player.time_slow > 0:
+        labels.append(f"Slow:{player.time_slow}")
+    if player.time_marque > 0:
+        labels.append(f"Mark:{player.time_marque}")
+    if player.time_lag_kick > 0:
+        labels.append(f"LagKick:{player.time_lag_kick}")
+    if player.time_renvoi > 0:
+        labels.append(f"Counter:{player.time_renvoi}")
+    if player.shield > 0:
+        labels.append(f"Shield:{player.shield}")
+    if player.time_reanimation > 0:
+        labels.append(f"Reanimate:{player.time_reanimation}")
+    if player.interdit is not None:
+        labels.append("Blocked")
+    if player.linked:
+        labels.append("Linked")
+    return labels if labels else ["No effect"]
 
 clock = pygame.time.Clock()
 while running:
@@ -149,85 +193,60 @@ while running:
     if p1.spell is not None:
         time_end = p1.spell.tc + p1.spell.d + p1.spell.tl - p1.spell.time_charge - p1.spell.duree - p1.spell.time_lag
         text_surface = my_font.render(str(f"{p1.spell.n} end in {time_end}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (0,25))
+        fenetre.blit(text_surface, (80, 0))
         if p1.cible is p1:
-            pygame.draw.line(fenetre, (0, 0, 255), (0,25), (0, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (0, 10), 2)
         if p1.cible is p2:
-            pygame.draw.line(fenetre, (0, 0, 255), (0,25), (250, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (250, 10), 2)
         if p1.cible is p3:
-            pygame.draw.line(fenetre, (0, 0, 255), (0,25), (500, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (500, 10), 2)
         if p1.cible is p4:
-            pygame.draw.line(fenetre, (0, 0, 255), (0,25), (750, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (80,10), (750, 10), 2)
     if p2.spell is not None:
         text_surface = my_font.render(str(f"{p2.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (250,25))
+        fenetre.blit(text_surface, (330, 0))
         if p2.cible is p1:
-            pygame.draw.line(fenetre, (0, 0, 255), (250,25), (0, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (0, 10), 2)
         if p2.cible is p2:
-            pygame.draw.line(fenetre, (0, 0, 255), (250,25), (250, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (250, 10), 2)
         if p2.cible is p3:
-            pygame.draw.line(fenetre, (0, 0, 255), (250,25), (500, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (500, 10), 2)
         if p2.cible is p4:
-            pygame.draw.line(fenetre, (0, 0, 255), (250,25), (750, 0), 2)
+            pygame.draw.line(fenetre, (0, 0, 255), (330,10), (750, 10), 2)
     if p3.spell is not None:
         text_surface = my_font.render(str(f"{p3.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (500,25))
+        fenetre.blit(text_surface, (580, 0))
         if p3.cible is p1:
-            pygame.draw.line(fenetre, (255, 0, 0), (500,25), (0, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (0, 10), 2)
         if p3.cible is p2:
-            pygame.draw.line(fenetre, (255, 0, 0), (500,25), (250, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (250, 10), 2)
         if p3.cible is p3:
-            pygame.draw.line(fenetre, (255, 0, 0), (500,25), (500, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (500, 10), 2)
         if p3.cible is p4:
-            pygame.draw.line(fenetre, (255, 0, 0), (500,25), (750, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (580,10), (750, 10), 2)
     if p4.spell is not None:
         text_surface = my_font.render(str(f"{p4.spell.n}"), False, (255, 255, 255))
-        fenetre.blit(text_surface, (750,25))
+        fenetre.blit(text_surface, (830, 0))
         if p4.cible is p1:
-            pygame.draw.line(fenetre, (255, 0, 0), (750,25), (0, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (0, 10), 2)
         if p4.cible is p2:
-            pygame.draw.line(fenetre, (255, 0, 0), (750,25), (250, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (250, 10), 2)
         if p4.cible is p3:
-            pygame.draw.line(fenetre, (255, 0, 0), (750,25), (500, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (500, 10), 2)
         if p4.cible is p4:
-            pygame.draw.line(fenetre, (255, 0, 0), (750,25), (750, 0), 2)
+            pygame.draw.line(fenetre, (255, 0, 0), (830,10), (750, 10), 2)
 
-    v = "0 effect"
-    if p1.time_poison > 0:
-        v = f"{p1.time_poison} Poison"
-    elif p1.time_silence > 0:
-        v = f"{p1.time_silence} Silence"
-    elif p1.time_invincibilite > 0:
-        v = f"{p1.time_invincibilite} Invincibility"
-    elif p1.time_treve > 0:
-        v = f"{p1.time_treve} Truce"
-    elif p1.time_clone > 0:
-        v = f"{p1.time_clone} Clone"
-    elif p1.time_regeneration > 0:
-        v = f"{p1.time_regeneration} Regeneration"
-
-    text_surface = my_font.render(str(f"{v}"), False, (255, 255, 255))
-    fenetre.blit(text_surface, (100,0))
+    for i, player in enumerate([p1, p2, p3, p4]):
+        base_x = i * 250
+        labels = get_effect_labels(player)
+        for j, label in enumerate(labels):
+            text_surface = my_font.render(label, False, (255, 255, 255))
+            fenetre.blit(text_surface, (base_x, 18 + j * 18))
 
 
     espace = 30
     azerty = "azertyuiopqsdfghjklmwxcvbn"
     colonne2_x = 500  # colonne des sorts accessibles via Maj + lettre (indices 26 à 51)
-
-    x, y = 0, 25
-    couleur = (255, 255, 255)
-    text_surface = my_font.render(str(f"(Key) Name :"), False, couleur)
-    fenetre.blit(text_surface, (x,y+25))
-    text_surface = my_font.render(str(f"Cooldown"), False, couleur);
-    fenetre.blit(text_surface, (x+150, y+25))
-    text_surface = my_font.render(str(f"Time charge; Duration;"), False, couleur)
-    fenetre.blit(text_surface, (x+250, y+25))
-    text_surface = my_font.render(str(f"(Maj+Key) Name :"), False, couleur)
-    fenetre.blit(text_surface, (colonne2_x,y+25))
-    text_surface = my_font.render(str(f"Cooldown"), False, couleur);
-    fenetre.blit(text_surface, (colonne2_x+150, y+25))
-    text_surface = my_font.render(str(f"Time charge; Duration;"), False, couleur)
-    fenetre.blit(text_surface, (colonne2_x+250, y+25))
 
     y0 = espace*2
     for i, s in enumerate(p1.s):
