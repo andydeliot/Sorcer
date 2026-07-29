@@ -445,16 +445,15 @@ class Ralentissement(Spell):
             c.time_slow -= 1
 
 class VolDeTemps(Spell):
-    """ Verrouille (plein cooldown) chaque sort actuellement disponible de la cible, et réduit d'autant le cooldown des sorts du lanceur. """
+    """ Réduit le cooldown de tous les sorts du lanceur au cooldown actuel des sorts de la cible. """
     def __init__(self):
         Spell.__init__(self, "Time steal")
 
     def effet(self, l, c, p):
         for spell_c in c.s:
             if spell_c.time_cooldown == 0:
-                spell_c.time_cooldown = spell_c.c
                 for spell_l in l.s:
-                    spell_l.time_cooldown = max(0, spell_l.time_cooldown - 100)
+                    spell_l.time_cooldown = min(spell_c.time_cooldown, spell_l.time_cooldown)
 
 class Reanimation(Spell):
     """ Si actif au moment où la cible devrait mourir, elle ressuscite avec pv_max/3 au lieu de mourir. """
@@ -579,7 +578,7 @@ class Difference(Spell):
             c.dammage(abs(c.pv - ally.pv))
 
 class RayonDeSoleil(Spell):
-    """ Premier lancer : charge (pas de dégâts). Lancer suivant : libère les dégâts. """
+    """ Premier lancer : charge (pas de dégâts). Lancer suivant : inflige 300 points de dégâts. """
     def __init__(self):
         Spell.__init__(self, "Sun ray", tc=150)
         self.charge = False
@@ -692,7 +691,7 @@ class Canalisation(Spell):
                     c.heal(15)
 
 class Aveuglement(Spell):
-    """ Pendant sa durée, la cible ne peut viser qu'elle-même (voir loop()). """
+    """ Pendant sa durée, la cible ne peut viser qu'elle-même. """
     def __init__(self):
         Spell.__init__(self, "Blindness")
         self.duree_aveuglement = 800
@@ -868,17 +867,13 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 3
+difficulte  = 18
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
 
     s = list(spells)
-    cooldown_base = 2000
-    cooldown_base = 2000 * difficulte
-    if difficulte == 1:
-        s = spells[:10]
-    elif difficulte == 2:
-        s = spells[:20]
+    cooldown_base = int(10000/18) * difficulte
+    s = spells[:min(difficulte*3, len(spells))]
     p1 = Sorcer(s)
     p2 = Sorcer(s)
     p3 = Sorcer(s)

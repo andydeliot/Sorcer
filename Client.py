@@ -6,6 +6,7 @@ import threading
 import pygame
 from pygame import *
 pygame.init()
+import math
 
 HOST = "127.0.0.1" #input("Adresse ip : ")
 PORT = 5000
@@ -198,6 +199,7 @@ while running:
     spells_panel_width = 800
     spells_panel_x = 20
 
+    player_centers = []
     for i, player in enumerate(players):
         if i < 2:
             x = spells_panel_x + spells_panel_width + 120
@@ -231,6 +233,11 @@ while running:
             effect_surface = small_font.render(label, False, (255, 255, 255))
             fenetre.blit(effect_surface, (x + 10, effect_y + j * 18))
 
+        # stocke le centre du panneau pour dessiner les flèches ensuite
+        center_x = x + panel_width // 2
+        center_y = y + panel_height // 2
+        player_centers.append((center_x, center_y))
+
         if player.spell is not None:
             spell_text = f"Spell: {player.spell.n}"
             if player.spell.tc + player.spell.d + player.spell.tl > 0:
@@ -241,6 +248,40 @@ while running:
         else:
             no_spell_surface = small_font.render("No spell in progress", False, (180, 180, 180))
             fenetre.blit(no_spell_surface, (x + 10, y + 190))
+
+    # Dessiner les flèches colorées indiquant la cible de chaque joueur
+    colors = [(255, 100, 100), (100, 255, 100), (100, 100, 255), (255, 255, 100)]
+    for i, player in enumerate(players):
+        try:
+            src = player_centers[i]
+        except IndexError:
+            continue
+        # trouver l'index de la cible dans la liste players
+        try:
+            tgt_index = players.index(player.cible)
+        except ValueError:
+            continue
+        tgt = player_centers[tgt_index]
+        color = colors[i % len(colors)]
+        # dessiner la ligne principale
+        pygame.draw.line(fenetre, color, src, tgt, 4)
+        # dessiner la pointe de la flèche
+        dx = tgt[0] - src[0]
+        dy = tgt[1] - src[1]
+        dist = math.hypot(dx, dy)
+        if dist > 0:
+            ux = dx / dist
+            uy = dy / dist
+            # taille de la flèche
+            ah = 12
+            aw = 8
+            # point d'arrivée
+            ax = tgt[0]
+            ay = tgt[1]
+            # deux points latéraux pour former un triangle
+            left = (ax - ux * ah - uy * aw, ay - uy * ah + ux * aw)
+            right = (ax - ux * ah + uy * aw, ay - uy * ah - ux * aw)
+            pygame.draw.polygon(fenetre, color, [ (ax, ay), left, right ])
 
     if spell_description:
         text_surface = my_font.render(f"Description : {spell_description}", False, (255, 255, 255))
