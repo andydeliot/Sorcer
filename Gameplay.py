@@ -488,7 +488,7 @@ class LagKick(Spell):
                 c.dammage(150)
 
 class Deviation(Spell):
-    """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure (voir loop()). """
+    """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure. """
     def __init__(self):
         Spell.__init__(self, "Deviation")
         self.duree_deviation = 600
@@ -867,13 +867,14 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 18
+difficulte  = 0
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
+    difficulte += 1
 
     s = list(spells)
-    cooldown_base = int(10000/18) * difficulte
-    s = spells[:min(difficulte*3, len(spells))]
+    cooldown_base = int(15000/26) * difficulte
+    s = spells[:min(difficulte*2, len(spells))]
     p1 = Sorcer(s)
     p2 = Sorcer(s)
     p3 = Sorcer(s)
@@ -913,11 +914,14 @@ def loop(commands):
         if n != "":
             n = int(n)
             if p.spell is None:
-                p.spell = p.s[n]
-                p.spell = None if p.spell.time_cooldown > 0 else p.spell
-                p.spell = None if p.spell is p.interdit else p.spell
-                p.spell = None if p.time_silence > 0 else p.spell
-                p.spell = None if p.pv <= 0 else p.spell
+                try:
+                    p.spell = p.s[n]
+                    p.spell = None if p.spell.time_cooldown > 0 else p.spell
+                    p.spell = None if p.spell is p.interdit else p.spell
+                    p.spell = None if p.time_silence > 0 else p.spell
+                    p.spell = None if p.pv <= 0 else p.spell
+                except IndexError:
+                    p.spell = None
                 for player in players:
                     if player.time_treve > 0:
                         p.spell = None
