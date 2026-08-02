@@ -361,6 +361,38 @@ class TestRenvoi:
         assert target.time_renvoi == 1
         assert other.time_renvoi == 5
 
+    def test_passive_decrements_when_effect_target_is_missing(self, caster, target, players):
+        spell = Renvoi()
+        spell.started = True
+        target.time_renvoi = 2
+
+        spell.passive(caster, target, players)
+
+        assert target.time_renvoi == 1
+
+    def test_loop_decrements_counter_each_tick(self):
+        gp.start()
+        p1, p2, p3, p4 = gp.p1, gp.p2, gp.p3, gp.p4
+        spell = next(s for s in p1.s if isinstance(s, Renvoi))
+        spell.time_cooldown = 0
+        spell.started = True
+        spell.time_charge = spell.tc
+        p1.spell = spell
+        p1.cible = p2
+        spell.effet(p1, p2, [p1, p2, p3, p4])
+
+        gp.loop(["0;0", "0;0", "0;0", "0;0"])
+
+        assert p2.time_renvoi == 199
+
+    def test_loop_decrements_other_duration_counters_each_tick(self):
+        gp.start()
+        gp.p2.time_silence = 2
+
+        gp.loop(["0;0", "0;0", "0;0", "0;0"])
+
+        assert gp.p2.time_silence == 1
+
     def test_passive_does_not_decrement_without_cast(self, caster, target, players):
         spell = Renvoi()
         target.time_renvoi = 2

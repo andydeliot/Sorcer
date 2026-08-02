@@ -88,7 +88,14 @@ class Spell:
         """ Cooldown. """
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-            
+
+    def _tick_target_timers(self, l, c):
+        target = c if c is not None else l
+        if target is None:
+            return
+        if getattr(target, "_duration_tick_done", False):
+            return
+        target.tick_duration_counters()
 
 class Boule_feu(Spell):
     """Inflige 25 points de dégâts au lanceur et 125 points de dégâts à la cible."""
@@ -119,8 +126,7 @@ class Poison(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_poison > 0:
-            c.time_poison -= 1
+        self._tick_target_timers(l, c)
         if c.time_poison % 100 == 1:
             c.dammage(25)
 
@@ -198,8 +204,7 @@ class Silence(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_silence > 0:
-            c.time_silence -= 1
+        self._tick_target_timers(l, c)
 
 class Renvoi(Spell):
     """Active un renvoi pendant 200 ticks pour renvoyer des sorts ciblant la cible."""
@@ -214,8 +219,17 @@ class Renvoi(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        target = self.effect_target
-        if target is not None and target.time_renvoi > 0:
+        if getattr(self, "effect_target", None) is None:
+            if not getattr(self, "started", False):
+                return
+            target = c
+        else:
+            target = self.effect_target
+
+        if target is None:
+            return
+
+        if getattr(target, "time_renvoi", 0) > 0 and not getattr(target, "_duration_tick_done", False):
             target.time_renvoi -= 1
 
 class Exodia(Spell):
@@ -292,9 +306,6 @@ class Invincibilite(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        target = getattr(self, "effect_target", c)
-        if target.time_invincibilite > 0:
-            target.time_invincibilite -= 1
 
 class Treve(Spell):
     """Accorde une trêve de 300 ticks au lanceur, empêchant probablement les agressions pendant sa durée."""
@@ -308,8 +319,6 @@ class Treve(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if l.time_treve > 0:
-            l.time_treve -= 1
 
 class Clone(Spell):
     """Applique un clone à la cible pendant 600 ticks."""
@@ -322,8 +331,6 @@ class Clone(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_clone > 0:
-            c.time_clone -= 1
 
 class Retour(Spell):
     """Enregistre la vie actuelle de la cible et la restaure à la fin de la durée."""
@@ -384,8 +391,6 @@ class Regeneration(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_regeneration > 0:
-            c.time_regeneration -= 1
         if c.time_regeneration % 100 == 1:
             c.heal(20)
 
@@ -438,8 +443,6 @@ class Acceleration(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_acceleration > 0:
-            c.time_acceleration -= 1
 
 class Ralentissement(Spell):
     """ Ralentit les lancers (/2) et augmente les cooldowns (x2) du joueur ciblé ; annule Acceleration. """
@@ -454,8 +457,6 @@ class Ralentissement(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_slow > 0:
-            c.time_slow -= 1
 
 class VolDeTemps(Spell):
     """ Réduit le cooldown de tous les sorts du lanceur au cooldown actuel des sorts de la cible. """
@@ -480,8 +481,6 @@ class Reanimation(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_reanimation > 0:
-            c.time_reanimation -= 1
 
 class Puissance(Spell):
     """ Cumule 1 dégat pour chaque 20 ticks durant lequel le lanceur n'a pas subit de dégats.
@@ -520,10 +519,6 @@ class Deviation(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_deviation > 0:
-            c.time_deviation -= 1
-            if c.time_deviation == 0:
-                c.deviation_cible = None
 
 class Baffe(Spell):
     """Un coup rapide qui inflige 10 dégâts avec un cooldown court."""
@@ -546,10 +541,6 @@ class Bouclier(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_shield > 0:
-            c.time_shield -= 1
-            if c.time_shield == 0:
-                c.shield = 0
 
 class ConcentrationMagique(Spell):
     """ Soigne 5 dégâts par sort de la cible actuellement disponible (hors cooldown). """
@@ -569,14 +560,18 @@ class PeineDeMort(Spell):
 
     def effet(self, l, c, p):
         c.time_death_penalty = self.duree_death_penalty
+        c.death_penalty_armed = True
 
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_death_penalty > 0:
-            c.time_death_penalty -= 1
-            if c.time_death_penalty == 0 and c.time_invincibilite == 0:
+        before = getattr(c, "time_death_penalty", 0)
+        self._tick_target_timers(l, c)
+        expired_now = before > 0 and c.time_death_penalty == 0
+        if (getattr(c, "death_penalty_armed", False) or expired_now) and c.time_death_penalty == 0:
+            if c.time_invincibilite == 0:
                 c.pv = 0
+            c.death_penalty_armed = False
 
 class Esprit(Spell):
     """ Inflige 200 dégâts à la cible pour chaque joueur mort dans la partie. """
@@ -660,6 +655,7 @@ class Nettoyage(Spell):
         c.shield = 0
         c.time_shield = 0
         c.time_death_penalty = 0
+        c.death_penalty_armed = False
         c.time_aveuglement = 0
         c.time_canalisation = 0
         c.time_inversion = 0
@@ -679,8 +675,6 @@ class Inversion(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_inversion > 0:
-            c.time_inversion -= 1
 
 class ProjectileMagique(Spell):
     """ Inflige 50 dégâts à la cible et à son coéquipier. """
@@ -706,7 +700,6 @@ class Canalisation(Spell):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
         if c.time_canalisation > 0:
-            c.time_canalisation -= 1
             for player in p:
                 if player.spell is not None and player.spell.started and player.spell.duree == 1:
                     c.heal(15)
@@ -723,8 +716,6 @@ class Aveuglement(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_aveuglement > 0:
-            c.time_aveuglement -= 1
 
 class Troc(Spell):
     """ La puissance de ce sort commence à 0, augmente progressivement, puis est réinitialisée à 0 lorsqu'il est utilisé. """
@@ -766,8 +757,6 @@ class Marque(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_marque > 0:
-            c.time_marque -= 1
 
 class Prolongation(Spell):
     """ Prolonge de 500 la durée restante de chaque passif actuellement actif sur la cible. """
@@ -832,16 +821,36 @@ class Sorcer:
         self.shield = 0
         self.time_shield = 0
         self.time_death_penalty = 0
+        self.death_penalty_armed = False
         self.time_inversion = 0
         self.time_canalisation = 0
         self.time_aveuglement = 0
         self.time_marque = 0
+        self._duration_tick_done = False
 
     def dammage(self, d):
         if self.time_inversion > 0:
             self._heal_raw(d)
             return
         self._dammage_raw(int(d))
+
+    def tick_duration_counters(self):
+        duration_attributes = [
+            "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
+            "time_treve", "time_clone", "time_regeneration", "time_acceleration",
+            "time_slow", "time_reanimation", "time_deviation", "time_shield",
+            "time_death_penalty", "time_inversion", "time_canalisation",
+            "time_aveuglement", "time_marque",
+        ]
+        for attr in duration_attributes:
+            current = getattr(self, attr, 0)
+            if current > 0:
+                setattr(self, attr, current - 1)
+        if self.time_shield <= 0:
+            self.shield = 0
+        if self.time_deviation <= 0:
+            self.deviation_cible = None
+        self._duration_tick_done = True
 
     def _dammage_raw(self, d):
         if self.time_invincibilite == 0:
@@ -897,7 +906,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 2
+difficulte  = 26
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
@@ -970,6 +979,12 @@ def loop(commands):
                         p.spell = None
                 if p.spell is not None:
                     print(f"Spell p{i+1} :", p.spell, "; Target :", cible)
+
+    for p in players:
+        p._duration_tick_done = False
+
+    for p in players:
+        p.tick_duration_counters()
 
     for p in players:
         s = p.spell
