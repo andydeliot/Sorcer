@@ -1,8 +1,7 @@
 import copy
 
-global cooldown_base
-cooldown_base = 2000
-
+difficulte  = 26
+cooldown_base = int(15000/26) * difficulte
 
 def get_ally(player, p):
     """ Coéquipier de player dans p, en supposant des paires (p[0],p[1]), (p[2],p[3])... comme team_a/team_b. """
@@ -906,15 +905,13 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 26
 def start():
-    global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
+    global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte, cooldown_base
     difficulte += 1
     difficulte = min(difficulte, 26)
     difficulte = max(difficulte, 1)
 
     s = list(spells)
-    cooldown_base = int(15000/26) * difficulte
     s = spells[:min(difficulte*2, len(spells))]
     p1 = Sorcer(s)
     p2 = Sorcer(s)
