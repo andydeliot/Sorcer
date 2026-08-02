@@ -64,6 +64,19 @@ selected_spell_index = None
 
 def get_effect_labels(player):
     labels = []
+    if player.interdit is not None:
+        blocked_name = getattr(player.interdit, "n", "Unknown")
+        labels.append(f"Blocked:{blocked_name}")
+    if player.linked:
+        # A player can have multiple links; show all remaining timers.
+        link_timers = sorted(
+            [int(link[0]) for link in player.linked if isinstance(link, list) and len(link) >= 1],
+            reverse=True,
+        )
+        if link_timers:
+            labels.append("Link:" + "/".join(str(t) for t in link_timers))
+        else:
+            labels.append("Link")
     if player.time_invincibilite > 0:
         labels.append(f"Invinc:{player.time_invincibilite}")
     if player.time_aveuglement > 0:
@@ -100,10 +113,6 @@ def get_effect_labels(player):
         labels.append(f"Shield:{player.shield}")
     if player.time_reanimation > 0:
         labels.append(f"Reanimate:{player.time_reanimation}")
-    if player.interdit is not None:
-        labels.append("Blocked")
-    if player.linked:
-        labels.append("Linked")
     return labels if labels else ["No effect"]
 
 def draw_wrapped_text(surface, text, font, color, x, y, max_width):
