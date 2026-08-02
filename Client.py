@@ -257,6 +257,8 @@ while running:
     # Dessiner les flèches colorées indiquant la cible de chaque joueur
     colors = [(255, 100, 100), (100, 255, 100), (100, 100, 255), (255, 255, 100)]
     for i, player in enumerate(players):
+        if player.pv <= 0:
+            continue
         try:
             src = player_centers[i]
         except IndexError:

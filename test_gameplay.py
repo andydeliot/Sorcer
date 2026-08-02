@@ -132,6 +132,27 @@ class TestSpellLifecycle:
         assert caster.busy is False
         assert caster.last_spell is spell
 
+    def test_dead_player_spell_stops_after_death_but_keeps_previous_effects(self):
+        gp.start()
+        caster = gp.p1
+        target = gp.p2
+
+        spell = Laser()
+        spell.started = True
+        spell.time_charge = spell.tc
+        spell.duree = 0
+        caster.spell = spell
+        caster.pv = caster.pv_max
+        target.pv = target.pv_max
+
+        gp.loop(["0;1", "0;0", "0;0", "0;0"])
+        assert target.pv == target.pv_max - 1
+
+        caster.pv = 0
+        gp.loop(["0;1", "0;0", "0;0", "0;0"])
+
+        assert target.pv == target.pv_max - 1
+
     def test_specialisation_cuts_cooldown_to_a_third(self, caster, target, players):
         spell = Boule_feu()
         caster.spell_specialisation = spell
@@ -179,6 +200,21 @@ class TestPoison:
         spell = Poison()
         spell.effet(caster, target, players)
         assert target.time_poison == spell.duree_poison
+
+    def test_passive_keeps_counting_down_the_original_target(self, caster, target, players):
+        spell = Poison()
+        spell.started = True
+        spell.time_charge = spell.tc
+        spell.action(caster, target, players)
+        spell.action(caster, target, players)
+        spell.end(caster, target, players)
+
+        caster.cible = caster
+        target.pv = 0
+        spell.passive(caster, spell.effect_target, players)
+
+        assert target.time_poison == spell.duree_poison - 1
+        assert caster.time_poison == 0
 
     def test_passive_ticks_down_and_damages_on_multiple_of_hundred(self, caster, target, players):
         spell = Poison()
@@ -284,6 +320,18 @@ class TestRenvoi:
         assert spell.time_cooldown == 1
         assert target.time_renvoi == 1
 
+    def test_passive_keeps_decrementing_original_target(self, caster, target, players):
+        spell = Renvoi()
+        other = make_sorcer()
+        spell.effet(caster, target, players)
+        target.time_renvoi = 2
+        other.time_renvoi = 5
+
+        spell.passive(caster, other, [caster, target, other])
+
+        assert target.time_renvoi == 1
+        assert other.time_renvoi == 5
+
 
 class TestExodia:
     def test_effet_increments_counter_below_threshold(self, caster, target, players):
@@ -385,6 +433,18 @@ class TestInvincibilite:
         assert target.time_invincibilite == 1
         target.dammage(999)
         assert target.pv == target.pv_max
+
+    def test_passive_keeps_decrementing_original_target(self, caster, target, players):
+        spell = Invincibilite()
+        other = make_sorcer()
+        spell.effet(caster, target, players)
+        target.time_invincibilite = 2
+        other.time_invincibilite = 5
+
+        spell.passive(caster, other, [caster, target, other])
+
+        assert target.time_invincibilite == 1
+        assert other.time_invincibilite == 5
 
 
 class TestTreve:

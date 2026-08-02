@@ -46,6 +46,7 @@ class Spell:
     def start(self, l, c, p):
         """ Définir ici que faire au lancement du sort. """
         if not self.started and self.time_cooldown == 0:
+            self.effect_target = c
             l.busy = True
             charge_gain = 1
             if l.time_acceleration > 0:
@@ -61,6 +62,7 @@ class Spell:
         """ Définir ici que faire durant la durée du sort. """
         if self.started and not self.ended:
             self.duree += 1
+            self.effect_target = c
             if self.duree <= self.d:
                 self.effet(l, c, p)
             else:
@@ -204,13 +206,15 @@ class Renvoi(Spell):
         Spell.__init__(self, "Counter", tc=50, tl=200)
 
     def effet(self, l, c, p):
+        self.effect_target = c
         c.time_renvoi = 200
 
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_renvoi > 0:
-            c.time_renvoi -= 1
+        target = getattr(self, "effect_target", c)
+        if target.time_renvoi > 0:
+            target.time_renvoi -= 1
 
 class Exodia(Spell):
     """Incrémente le compteur Exodia et élimine tous les adversaires quand il atteint 5."""
@@ -278,13 +282,15 @@ class Invincibilite(Spell):
         Spell.__init__(self, "Invincibility", tc=0, d=250)
 
     def effet(self, l, c, p):
+        self.effect_target = c
         c.time_invincibilite = 250
 
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_invincibilite > 0:
-            c.time_invincibilite -= 1
+        target = getattr(self, "effect_target", c)
+        if target.time_invincibilite > 0:
+            target.time_invincibilite -= 1
 
 class Treve(Spell):
     """Accorde une trêve de 300 ticks au lanceur, empêchant probablement les agressions pendant sa durée."""
@@ -292,6 +298,7 @@ class Treve(Spell):
         Spell.__init__(self, "Truce", tc=10)
 
     def effet(self, l, c, p):
+        self.effect_target = l
         l.time_treve = 300
 
     def passive(self, l, c, p):
@@ -480,6 +487,7 @@ class Puissance(Spell):
         Spell.__init__(self, "Puissance", tc=50)
 
     def effet(self, l, c, p):
+        self.effect_target = l
         if l.time_puissance > 0:
             c.dammage(l.time_puissance)
         l.time_puissance = 0
@@ -879,7 +887,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 26
+difficulte  = 1
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
@@ -943,14 +951,21 @@ def loop(commands):
     for p in players:
         s = p.spell
         if s is not None:
-            s.start(p, p.cible, players)
-            if p.cible.time_renvoi > 0:
-                s.action(p, p, players)
+            if p.pv > 0:
+                s.start(p, p.cible, players)
+                if p.cible.time_renvoi > 0:
+                    s.action(p, p, players)
+                else:
+                    s.action(p, p.cible, players)
+                s.end(p, p.cible, players)
             else:
-                s.action(p, p.cible, players)
-            s.end(p, p.cible, players)
+                p.spell = None
+                p.busy = False
         for s in p.s:
-            s.passive(p, p.cible, players)
+            passive_target = getattr(s, "effect_target", None)
+            if passive_target is None:
+                passive_target = p.cible
+            s.passive(p, passive_target, players)
 
     for p in players:
         if p.time_clone > 0:
