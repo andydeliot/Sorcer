@@ -35,6 +35,13 @@ def test_spell_description_is_available_from_docstring():
     assert "dégâts" in spell.description.lower() or "damage" in spell.description.lower()
 
 
+def test_spell_preview_text_contains_name_and_description():
+    spell = Boule_feu()
+    preview = gp.get_spell_preview_text(spell)
+    assert spell.n in preview
+    assert spell.description in preview
+
+
 @pytest.fixture
 def caster():
     return make_sorcer()

@@ -213,7 +213,9 @@ while running:
                     spell_index = base + 26 if maj else base
                     selected_spell_index = spell_index
                     msg = spell_index
-                    if not space_pressed:
+                    if 0 <= spell_index < len(p1.s):
+                        spell_description = get_spell_preview_text(p1.s[spell_index])
+                    else:
                         spell_description = ""
             except IndexError:
                 print(event.key)
@@ -323,11 +325,11 @@ while running:
     if spell_description:
         draw_wrapped_text(
             fenetre,
-            f"Description : {spell_description}",
+            f"{spell_description}",
             my_font,
             (255, 255, 255),
-            1120,
-            720,
+            1000,
+            500,
             600,
         )
 

@@ -3,6 +3,17 @@ import copy
 difficulte  = 26
 cooldown_base = int(15000/26) * difficulte
 
+
+def get_spell_preview_text(spell):
+    """Retourne le texte de prévisualisation d'un sort pour l'interface."""
+    if spell is None:
+        return ""
+    description = getattr(spell, "description", "") or ""
+    if description:
+        return f"{spell.n} : {description}"
+    return spell.n
+
+
 def get_ally(player, p):
     """ Coéquipier de player dans p, en supposant des paires (p[0],p[1]), (p[2],p[3])... comme team_a/team_b. """
     if player not in p:
@@ -421,13 +432,13 @@ class VolDeSort(Spell):
         c.busy = False
 
 class Earthquake(Spell):
-    """Inflige 50 dégâts à tous les joueurs présents."""
+    """ Inflige 150 dégâts à tous les joueurs. """
     def __init__(self):
         Spell.__init__(self, "Earthquake")
 
     def effet(self, l, c, p):
         for player in p:
-            player.dammage(50)
+            player.dammage(150)
 
 class Acceleration(Spell):
     """ Accélère les lancers (x2) et le lag (/2) du joueur ciblé ; annule Slow. """
