@@ -546,7 +546,7 @@ class Bouclier(Spell):
     """ Réduit chaque source de dégâts de 25 pendant 4000 ticks. """
     def __init__(self):
         Spell.__init__(self, "Shield")
-        self.duree_shield = 4000
+        self.duree_shield = 3000
 
     def effet(self, l, c, p):
         c.shield = 25
@@ -597,14 +597,14 @@ class Esprit(Spell):
         c.dammage(200 * morts)
 
 class Difference(Spell):
-    """ Inflige la différence de points de vie entre la cible et son coéquipier. """
+    """ Inflige la différence de points de vie entre la cible et son coéquipier divisé par 2. """
     def __init__(self):
         Spell.__init__(self, "Difference")
 
     def effet(self, l, c, p):
         ally = get_ally(c, p)
         if ally is not None:
-            c.dammage(abs(c.pv - ally.pv))
+            c.dammage(abs(c.pv - ally.pv) // 2)
 
 class RayonDeSoleil(Spell):
     """ Premier lancer : charge (pas de dégâts). Lancer suivant : inflige 300 points de dégâts. """
@@ -699,7 +699,7 @@ class ProjectileMagique(Spell):
         c.dammage(75)
         ally = get_ally(c, p)
         if ally is not None:
-            ally.dammage(50)
+            ally.dammage(75)
 
 class Canalisation(Spell):
     """ Pendant sa durée, soigne la cible à chaque fois qu'un joueur (n'importe lequel) lance un sort. """
@@ -741,22 +741,22 @@ class Troc(Spell):
 
     def effet(self, l, c, p):
         Troc.utilisation_totale += 1
-        degats = max(0, int(Troc.puissance/30))
+        degats = max(0, int(Troc.puissance/10))
         c.dammage(degats)
         Troc.puissance = 0
 
     def passive(self, l, c, p):
         super().passive(l, c, p)
-        Troc.puissance = min(1000, Troc.puissance + 1)
+        Troc.puissance += 1
 
 class Tempo(Spell):
-    """ Diminue de 1000 le cooldown max de chaque sort de la cible (plancher à 200). """
+    """ Diminue de 3000 le cooldown max de chaque sort de la cible (plancher à 200). """
     def __init__(self):
         Spell.__init__(self, "Tempo")
 
     def effet(self, l, c, p):
         for s in c.s:
-            s.c = max(200, s.c - 1000)
+            s.c = max(200, s.c - 3000)
 
 class Marque(Spell):
     """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 100% pendant sa durée. """
@@ -773,7 +773,7 @@ class Marque(Spell):
             self.time_cooldown -= 1
 
 class Prolongation(Spell):
-    """ Prolonge de 500 la durée restante de chaque passif actuellement actif sur la cible. """
+    """ Prolonge de 1000 la durée restante de chaque passif actuellement actif sur la cible. """
     attributs_prolongeables = [
         "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
         "time_treve", "time_clone", "time_regeneration", "time_acceleration",
@@ -784,7 +784,7 @@ class Prolongation(Spell):
 
     def __init__(self):
         Spell.__init__(self, "Prolongation")
-        self.bonus_prolongation = 500
+        self.bonus_prolongation = 1000
 
     def effet(self, l, c, p):
         for attr in Prolongation.attributs_prolongeables:
