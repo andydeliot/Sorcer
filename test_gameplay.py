@@ -292,6 +292,12 @@ class TestLienSpirituel:
         assert caster.linked == []
         assert target.linked == []
 
+    def test_passive_decrements_spell_cooldown(self, caster, target, players):
+        spell = LienSpirituel()
+        spell.time_cooldown = 2
+        spell.passive(caster, target, players)
+        assert spell.time_cooldown == 1
+
 
 class TestSilence:
     def test_effet(self, caster, target, players):
@@ -315,6 +321,7 @@ class TestRenvoi:
     def test_passive_decrements_renvoi_and_cooldown(self, caster, target, players):
         spell = Renvoi()
         spell.time_cooldown = 2
+        spell.effet(caster, target, players)
         target.time_renvoi = 2
         spell.passive(caster, target, players)
         assert spell.time_cooldown == 1
@@ -331,6 +338,14 @@ class TestRenvoi:
 
         assert target.time_renvoi == 1
         assert other.time_renvoi == 5
+
+    def test_passive_does_not_decrement_without_cast(self, caster, target, players):
+        spell = Renvoi()
+        target.time_renvoi = 2
+
+        spell.passive(caster, target, players)
+
+        assert target.time_renvoi == 2
 
 
 class TestExodia:

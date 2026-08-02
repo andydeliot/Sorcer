@@ -171,6 +171,8 @@ class LienSpirituel(Spell):
         c.linked.append([800, l, c])
 
     def passive(self, l, c, p):
+        if self.time_cooldown > 0:
+            self.time_cooldown -= 1
         for link in l.linked:
             if link[1] == l and link[2] == c:
                 if link[0] > 0:
@@ -204,6 +206,7 @@ class Renvoi(Spell):
     """Active un renvoi pendant 200 ticks pour renvoyer des sorts ciblant la cible."""
     def __init__(self):
         Spell.__init__(self, "Counter", tc=50, tl=200)
+        self.effect_target = None
 
     def effet(self, l, c, p):
         self.effect_target = c
@@ -212,8 +215,8 @@ class Renvoi(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        target = getattr(self, "effect_target", c)
-        if target.time_renvoi > 0:
+        target = self.effect_target
+        if target is not None and target.time_renvoi > 0:
             target.time_renvoi -= 1
 
 class Exodia(Spell):
@@ -887,7 +890,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 1
+difficulte  = 2
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
