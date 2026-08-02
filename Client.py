@@ -39,9 +39,14 @@ threading.Thread(target=recv_loop, daemon=True).start()
 # -------------------------
 
 pygame.font.init()
-my_font = pygame.font.SysFont('Comic Sans MS', 20)
-small_font = pygame.font.SysFont('Comic Sans MS', 16)
-header_font = pygame.font.SysFont('Comic Sans MS', 24)
+font_name = pygame.font.match_font('Segoe UI')
+if font_name is None:
+    font_name = pygame.font.match_font('Arial')
+if font_name is None:
+    font_name = pygame.font.match_font('DejaVu Sans')
+my_font = pygame.font.Font(font_name, 20)
+small_font = pygame.font.Font(font_name, 16)
+header_font = pygame.font.Font(font_name, 24)
 from random import randint
 
 fenetre = pygame.display.set_mode((1800, 900))
@@ -86,8 +91,8 @@ def get_effect_labels(player):
         labels.append(f"Slow:{player.time_slow}")
     if player.time_marque > 0:
         labels.append(f"Mark:{player.time_marque}")
-    if player.time_lag_kick > 0:
-        labels.append(f"LagKick:{player.time_lag_kick}")
+    if player.time_puissance > 0:
+        labels.append(f"Puissance:{player.time_puissance}")
     if player.time_renvoi > 0:
         labels.append(f"Counter:{player.time_renvoi}")
     if player.shield > 0:

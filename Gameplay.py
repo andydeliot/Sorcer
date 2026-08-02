@@ -470,22 +470,27 @@ class Reanimation(Spell):
         if c.time_reanimation > 0:
             c.time_reanimation -= 1
 
-class LagKick(Spell):
-    """ Ne bloque pas le lanceur : les dégâts sont réglés en passif, 1000 ticks après le lancement. """
+class Puissance(Spell):
+    """Inflige 1 point de dégâts tous les 20 ticks durant lesquels le lanceur n'a pas subi de dégâts."""
     def __init__(self):
-        Spell.__init__(self, "Lag kick", tc=50)
-        self.duree_lag_kick = 1000
+        Spell.__init__(self, "Puissance", tc=50)
+        self.duree_puissance = 1000
 
     def effet(self, l, c, p):
-        c.time_lag_kick = self.duree_lag_kick
+        l.time_puissance = self.duree_puissance
+        l.puissance_ticks_since_damage = 0
 
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
-        if c.time_lag_kick > 0:
-            c.time_lag_kick -= 1
-            if c.time_lag_kick == 0:
-                c.dammage(150)
+        if l.time_puissance > 0:
+            l.time_puissance -= 1
+            if l.puissance_ticks_since_damage is None:
+                l.puissance_ticks_since_damage = 0
+            l.puissance_ticks_since_damage += 1
+            if l.puissance_ticks_since_damage >= 20:
+                c.dammage(1)
+                l.puissance_ticks_since_damage = 0
 
 class Deviation(Spell):
     """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure. """
@@ -633,7 +638,7 @@ class Nettoyage(Spell):
         c.time_acceleration = 0
         c.time_slow = 0
         c.time_reanimation = 0
-        c.time_lag_kick = 0
+        c.time_puissance = 0
         c.time_deviation = 0
         c.deviation_cible = None
         c.shield = 0
@@ -747,7 +752,7 @@ class Prolongation(Spell):
     attributs_prolongeables = [
         "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
         "time_treve", "time_clone", "time_regeneration", "time_acceleration",
-        "time_slow", "time_reanimation", "time_lag_kick", "time_deviation",
+        "time_slow", "time_reanimation", "time_puissance", "time_deviation",
         "time_shield", "time_death_penalty", "time_aveuglement", "time_canalisation",
         "time_inversion", "time_marque",
     ]
@@ -764,7 +769,7 @@ class Prolongation(Spell):
 spells = [Boule_feu, Laser, Poison, VolDeVie, Soin, Vitesse, Interdiction, LienSpirituel, Silence, Renvoi,
           Exodia, Multiplicateur, TicTac, Balance, Renforcement, Specialisation, Invincibilite, Treve, Clone, Retour,
           Flash, Canon, Coagulation, Regeneration, Annulation, VolDeSort, Earthquake,
-          Acceleration, Ralentissement, VolDeTemps, Reanimation, LagKick, Deviation, Baffe, Bouclier,
+          Acceleration, Ralentissement, VolDeTemps, Reanimation, Puissance, Deviation, Baffe, Bouclier,
           ConcentrationMagique, PeineDeMort, Esprit, Difference, RayonDeSoleil, ConcentrationSorts,
           Repetition, Impatience, Nettoyage, Inversion, ProjectileMagique, Canalisation, Aveuglement, Troc,
           Tempo, Prolongation, Marque]
@@ -798,7 +803,8 @@ class Sorcer:
         self.time_acceleration = 0
         self.time_slow = 0
         self.time_reanimation = 0
-        self.time_lag_kick = 0
+        self.time_puissance = 0
+        self.puissance_ticks_since_damage = 0
         self.time_deviation = 0
         self.deviation_cible = None
         self.shield = 0
@@ -830,7 +836,8 @@ class Sorcer:
                     self.pv = int(self.pv_max/3)
                     self.time_reanimation = 0
                 else:
-                    self.pv = 0 if self.pv < 0 else self.pv
+                    self.puissance_ticks_since_damage = 0
+                self.pv = 0 if self.pv < 0 else self.pv
                 for link in self.linked:
                     if link[1] is not self:
                         if link[1].pv > 0:
@@ -867,7 +874,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 0
+difficulte  = 10
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1

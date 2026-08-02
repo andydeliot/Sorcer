@@ -70,7 +70,7 @@ CATEGORIE = {
     Coagulation: SUPPORT, Regeneration: SUPPORT, Annulation: ENEMY_CASTING,
     VolDeSort: ENEMY_CASTING, Earthquake: ENEMY,
     Acceleration: SUPPORT, Ralentissement: ENEMY, VolDeTemps: ENEMY,
-    Reanimation: SUPPORT, LagKick: ENEMY, Deviation: ENEMY_HIGH, Baffe: ENEMY,
+    Reanimation: SUPPORT, Puissance: ENEMY, Deviation: ENEMY_HIGH, Baffe: ENEMY,
     Bouclier: SUPPORT, ConcentrationMagique: ENEMY, PeineDeMort: ENEMY,
     Esprit: ENEMY, Difference: ENEMY, RayonDeSoleil: ENEMY,
     ConcentrationSorts: ENEMY, Repetition: MIRROR, Impatience: ENEMY,
@@ -83,7 +83,7 @@ CATEGORIE = {
 # bon à prolonger sur un ennemi) ou un avantage (inverse) pour Nettoyage/Prolongation.
 DEBUFFS = [
     "time_poison", "time_silence", "time_slow", "time_marque",
-    "time_death_penalty", "time_aveuglement", "time_lag_kick",
+    "time_death_penalty", "time_aveuglement", "time_puissance",
     "time_deviation", "time_inversion",
 ]
 BUFFS = [

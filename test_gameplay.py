@@ -7,7 +7,7 @@ from Gameplay import (
     LienSpirituel, Silence, Renvoi, Exodia, Multiplicateur, TicTac, Balance,
     Renforcement, Specialisation, Invincibilite, Treve, Clone, Retour,
     Flash, Canon, Coagulation, Regeneration, Annulation, VolDeSort, Earthquake,
-    Acceleration, Ralentissement, VolDeTemps, Reanimation, LagKick, Deviation,
+    Acceleration, Ralentissement, VolDeTemps, Reanimation, Puissance, Deviation,
     Baffe, Bouclier, ConcentrationMagique, PeineDeMort, Esprit,
     Difference, RayonDeSoleil, ConcentrationSorts, Repetition, Impatience,
     Nettoyage, Inversion, ProjectileMagique, Canalisation, Aveuglement, Troc,
@@ -641,22 +641,22 @@ class TestReanimation:
         assert target.pv == 0
 
 
-class TestLagKick:
-    def test_effet(self, caster, target, players):
-        spell = LagKick()
+class TestPuissance:
+    def test_effet_sets_duration(self, caster, target, players):
+        spell = Puissance()
         spell.effet(caster, target, players)
-        assert target.time_lag_kick == spell.duree_lag_kick
+        assert caster.time_puissance == spell.duree_puissance
 
-    def test_passive_deals_damage_only_when_timer_reaches_zero(self, caster, target, players):
-        spell = LagKick()
-        target.time_lag_kick = 3
+    def test_passive_deals_damage_every_twenty_ticks_without_damage(self, caster, target, players):
+        spell = Puissance()
+        spell.effet(caster, target, players)
+
+        for _ in range(19):
+            spell.passive(caster, target, players)
+        assert target.pv == target.pv_max
 
         spell.passive(caster, target, players)
-        assert target.pv == target.pv_max
-        spell.passive(caster, target, players)
-        assert target.pv == target.pv_max
-        spell.passive(caster, target, players)
-        assert target.pv == target.pv_max - 150
+        assert target.pv == target.pv_max - 1
 
 
 class TestDeviation:
@@ -1024,7 +1024,7 @@ def test_all_spells_are_covered_by_a_test_class():
         Balance, Renforcement, Specialisation, Invincibilite, Treve, Clone,
         Retour, Flash, Canon, Coagulation, Regeneration, Annulation,
         VolDeSort, Earthquake,
-        Acceleration, Ralentissement, VolDeTemps, Reanimation, LagKick, Deviation,
+        Acceleration, Ralentissement, VolDeTemps, Reanimation, Puissance, Deviation,
         Baffe, Bouclier, ConcentrationMagique, PeineDeMort, Esprit,
         Difference, RayonDeSoleil, ConcentrationSorts, Repetition, Impatience,
         Nettoyage, Inversion, ProjectileMagique, Canalisation, Aveuglement, Troc,
