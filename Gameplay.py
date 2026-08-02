@@ -728,16 +728,22 @@ class Aveuglement(Spell):
             c.time_aveuglement -= 1
 
 class Troc(Spell):
-    """ Plus ce sort est utilisé par l'ensemble des joueurs, plus il perd en puissance (compteur partagé). """
+    """ La puissance de ce sort commence à 0, augmente progressivement, puis est réinitialisée à 0 lorsqu'il est utilisé. """
     utilisation_totale = 0
+    puissance = 0
 
     def __init__(self):
         Spell.__init__(self, "Trade")
 
     def effet(self, l, c, p):
         Troc.utilisation_totale += 1
-        degats = max(10, 200 - 10 * Troc.utilisation_totale)
+        degats = max(0, int(Troc.puissance/30))
         c.dammage(degats)
+        Troc.puissance = 0
+
+    def passive(self, l, c, p):
+        super().passive(l, c, p)
+        Troc.puissance = min(1000, Troc.puissance + 1)
 
 class Tempo(Spell):
     """ Diminue de 1000 le cooldown max de chaque sort de la cible (plancher à 200). """
@@ -892,10 +898,12 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 2
+difficulte  = 26
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
+    difficulte = min(difficulte, 26)
+    difficulte = max(difficulte, 1)
 
     s = list(spells)
     cooldown_base = int(15000/26) * difficulte

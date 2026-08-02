@@ -1058,17 +1058,21 @@ class TestLoopInputRobustness:
 
 
 class TestTroc:
-    def test_effet_gets_weaker_as_it_is_used_more(self, caster, target, players):
+    def test_effet_grows_stronger_while_unused_and_is_consumed_on_cast(self, caster, target, players):
         Troc.utilisation_totale = 0
+        Troc.puissance = 0
         spell = Troc()
+
+        spell.passive(caster, target, players)
+        assert Troc.puissance == 1
 
         spell.effet(caster, target, players)
         assert Troc.utilisation_totale == 1
-        assert target.pv == target.pv_max - 190
+        assert target.pv == target.pv_max - 1
+        assert Troc.puissance == 0
 
-        spell.effet(caster, target, players)
-        assert Troc.utilisation_totale == 2
-        assert target.pv == target.pv_max - 190 - 180
+        spell.passive(caster, target, players)
+        assert Troc.puissance == 1
 
 
 class TestTempo:

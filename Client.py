@@ -60,6 +60,7 @@ cible = 2
 msg = ""
 spell_description = ""
 space_pressed = False
+selected_spell_index = None
 
 def get_effect_labels(player):
     labels = []
@@ -105,6 +106,25 @@ def get_effect_labels(player):
         labels.append("Linked")
     return labels if labels else ["No effect"]
 
+def draw_wrapped_text(surface, text, font, color, x, y, max_width):
+    words = text.split()
+    lines = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}" if current else word
+        if font.size(candidate)[0] <= max_width:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+
+    for index, line in enumerate(lines):
+        line_surface = font.render(line, False, color)
+        surface.blit(line_surface, (x, y + index * 24))
+
 clock = pygame.time.Clock()
 while running:
     for event in pygame.event.get():
@@ -115,6 +135,10 @@ while running:
                 base = None
                 if event.key == K_SPACE:
                     space_pressed = True
+                    if selected_spell_index is not None and 0 <= selected_spell_index < len(p1.s):
+                        spell_description = p1.s[selected_spell_index].description
+                    else:
+                        spell_description = ""
                 elif event.key == K_a:
                     base = 0
                 elif event.key == K_z:
@@ -178,19 +202,16 @@ while running:
                     # Maj + lettre -> les 26 sorts suivants (indices 26 à 51).
                     maj = pygame.key.get_mods() & pygame.KMOD_SHIFT
                     spell_index = base + 26 if maj else base
-                    if space_pressed:
-                        if 0 <= spell_index < len(p1.s):
-                            spell_description = p1.s[spell_index].description
-                        else:
-                            spell_description = ""
-                    else:
-                        msg = spell_index
+                    selected_spell_index = spell_index
+                    msg = spell_index
+                    if not space_pressed:
                         spell_description = ""
             except IndexError:
                 print(event.key)
         elif event.type == pygame.KEYUP:
             if event.key == K_SPACE:
                 space_pressed = False
+                spell_description = ""
 
 
     fenetre.fill((0,0,0))
@@ -291,8 +312,15 @@ while running:
             pygame.draw.polygon(fenetre, color, [ (ax, ay), left, right ])
 
     if spell_description:
-        text_surface = my_font.render(f"Description : {spell_description}", False, (255, 255, 255))
-        fenetre.blit(text_surface, (20, 760))
+        draw_wrapped_text(
+            fenetre,
+            f"Description : {spell_description}",
+            my_font,
+            (255, 255, 255),
+            1120,
+            720,
+            600,
+        )
 
     espace = 30
     azerty = "azertyuiopqsdfghjklmwxcvbn"
