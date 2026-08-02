@@ -234,6 +234,28 @@ class TestPoison:
         spell.passive(caster, target, players)
         assert spell.time_cooldown == 2
 
+    def test_passive_continues_on_previous_target_while_new_cast_is_charging(self, caster, target, players):
+        spell = Poison()
+
+        # First cast applies poison on target.
+        spell.started = True
+        spell.action(caster, target, players)
+        assert target.time_poison == spell.duree_poison
+
+        # New cast begins on another target while the old poison is still active.
+        caster.cible = caster
+        spell.started = False
+        spell.time_charge = 0
+        spell.time_cooldown = 0
+        spell.start(caster, caster, players)
+
+        # The existing poison must keep ticking on the original target.
+        previous = target.time_poison
+        spell.passive(caster, spell.effect_target, players)
+
+        assert target.time_poison == previous - 1
+        assert caster.time_poison == 0
+
 
 class TestVolDeVie:
     def test_effet(self, caster, target, players):
@@ -804,7 +826,7 @@ class TestBaffe:
 
     def test_has_a_low_cooldown_by_design(self):
         spell = Baffe()
-        assert spell.c == int(gp.cooldown_base / 4)
+        assert spell.c == int(gp.cooldown_base / 10)
 
 
 class TestBouclier:
@@ -1066,13 +1088,21 @@ class TestTroc:
         spell.passive(caster, target, players)
         assert Troc.puissance == 1
 
+        # A 1 point de puissance, int(1/30) == 0 : pas encore de dégâts.
         spell.effet(caster, target, players)
         assert Troc.utilisation_totale == 1
-        assert target.pv == target.pv_max - 1
+        assert target.pv == target.pv_max
         assert Troc.puissance == 0
 
-        spell.passive(caster, target, players)
-        assert Troc.puissance == 1
+        # Le premier palier de dégâts est atteint à 30 points de puissance.
+        for _ in range(30):
+            spell.passive(caster, target, players)
+        assert Troc.puissance == 30
+
+        spell.effet(caster, target, players)
+        assert Troc.utilisation_totale == 2
+        assert target.pv == target.pv_max - 1
+        assert Troc.puissance == 0
 
 
 class TestTempo:

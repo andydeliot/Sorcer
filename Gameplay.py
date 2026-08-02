@@ -46,7 +46,6 @@ class Spell:
     def start(self, l, c, p):
         """ Définir ici que faire au lancement du sort. """
         if not self.started and self.time_cooldown == 0:
-            self.effect_target = c
             l.busy = True
             charge_gain = 1
             if l.time_acceleration > 0:
@@ -529,7 +528,7 @@ class Deviation(Spell):
 class Baffe(Spell):
     """Un coup rapide qui inflige 10 dégâts avec un cooldown court."""
     def __init__(self):
-        Spell.__init__(self, "Quick slap", c=int(cooldown_base/4), tc=20, tl=20)
+        Spell.__init__(self, "Quick slap", c=int(cooldown_base/10), tc=20, tl=20)
 
     def effet(self, l, c, p):
         c.dammage(10)
@@ -898,7 +897,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 26
+difficulte  = 2
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
@@ -916,9 +915,6 @@ def start():
     players = [p1, p2, p3, p4]
     team_a = [p1, p2] # Not used.
     team_b = [p3, p4] # Not used.
-    for p in players:
-        for s in p.s:
-            s.c = cooldown_base
 
     Troc.utilisation_totale = 0
 
