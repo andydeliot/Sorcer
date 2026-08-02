@@ -401,6 +401,20 @@ class TestTicTac:
         TicTac().effet(caster, target, players)
         assert target.pv == 300 - int((800 - 300) * 0.25)
 
+    def test_effet_alternates_between_tic_and_tac(self, caster, target, players):
+        caster.tictac = "tic"
+        target.pv = 300
+        target.pv_max = 800
+
+        TicTac().effet(caster, target, players)
+        assert target.pv == 300 - int(300 * 0.2)
+        assert caster.tictac == "tac"
+
+        target.pv = 300
+        TicTac().effet(caster, target, players)
+        assert target.pv == 300 - int((800 - 300) * 0.25)
+        assert caster.tictac == "tic"
+
 
 class TestBalance:
     def test_effet_equalizes_toward_each_other(self, caster, target, players):

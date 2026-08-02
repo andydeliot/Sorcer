@@ -249,8 +249,10 @@ class TicTac(Spell):
     def effet(self, l, c, p):
         if l.tictac == "tic":
             c.dammage(int(c.pv*0.2))
+            l.tictac = "tac"
         else:
             c.dammage(int((c.pv_max-c.pv)*0.25))
+            l.tictac = "tic"
 
 class Balance(Spell):
     """Équilibre les PV du lanceur et de la cible en infligeant un tiers de la différence."""
