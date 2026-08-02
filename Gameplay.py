@@ -471,26 +471,12 @@ class Reanimation(Spell):
             c.time_reanimation -= 1
 
 class Puissance(Spell):
-    """Inflige 1 point de dégâts tous les 20 ticks durant lesquels le lanceur n'a pas subi de dégâts."""
+    """Cumule 1 dégat pour chaque 20 ticks durant lequel le lanceur n'a pas subit de dégats. """
     def __init__(self):
         Spell.__init__(self, "Puissance", tc=50)
-        self.duree_puissance = 1000
-
     def effet(self, l, c, p):
-        l.time_puissance = self.duree_puissance
         l.puissance_ticks_since_damage = 0
 
-    def passive(self, l, c, p):
-        if self.time_cooldown > 0:
-            self.time_cooldown -= 1
-        if l.time_puissance > 0:
-            l.time_puissance -= 1
-            if l.puissance_ticks_since_damage is None:
-                l.puissance_ticks_since_damage = 0
-            l.puissance_ticks_since_damage += 1
-            if l.puissance_ticks_since_damage >= 20:
-                c.dammage(1)
-                l.puissance_ticks_since_damage = 0
 
 class Deviation(Spell):
     """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure. """
