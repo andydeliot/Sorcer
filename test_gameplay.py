@@ -1022,6 +1022,12 @@ class TestAveuglement:
         assert gp.p2.cible is gp.p2
 
 
+class TestLoopInputRobustness:
+    def test_accepts_none_commands_without_crashing(self):
+        gp.start()
+        gp.loop([None, None, None, None])
+
+
 class TestTroc:
     def test_effet_gets_weaker_as_it_is_used_more(self, caster, target, players):
         Troc.utilisation_totale = 0

@@ -40,6 +40,7 @@ threading.Thread(target=recv_loop, daemon=True).start()
 from random import choice
 
 running = True
+round_end_ready_sent = False
 
 p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
 
@@ -184,8 +185,21 @@ def choisir_cible(categorie):
     return cible_ennemi_faible()
 
 
+def manche_terminee():
+    return (p1.pv <= 0 and p2.pv <= 0) or (p3.pv <= 0 and p4.pv <= 0)
+
+
 clock = pygame.time.Clock()
 while running:
+    if manche_terminee():
+        if not round_end_ready_sent:
+            send_obj("READY")
+            round_end_ready_sent = True
+        clock.tick(50)
+        continue
+    else:
+        round_end_ready_sent = False
+
     if p1.pv > 0 and p1.spell is None and p1.time_silence == 0:
         options = []
         for i, s in enumerate(p1.s):

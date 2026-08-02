@@ -3,6 +3,7 @@ import pickle
 import struct
 import time
 import threading
+import Gameplay as gp
 
 from Gameplay import *
 import pygame
@@ -78,8 +79,17 @@ threading.Thread(target=receive_loop, daemon=True).start()
 # -------------------------
 
 def game_loop():
-    start()
     clock = pygame.time.Clock()
+    gp.start()
+    round_active = False
+
+    def clear_client_inputs():
+        with lock:
+            for data in clients.values():
+                data["last_msg"] = None
+
+    clear_client_inputs()
+
     while True:
         clock.tick(50)
 
@@ -93,15 +103,35 @@ def game_loop():
             msg_p2 = clients[adr_p2]["last_msg"]
             msg_p3 = clients[adr_p3]["last_msg"]
             msg_p4 = clients[adr_p4]["last_msg"]
+
+            s_p1, s_p2, s_p3, s_p4 = gp.p1, gp.p2, gp.p3, gp.p4
+
+            if not round_active:
+                if all(m is not None and m != "" for m in [msg_p1, msg_p2, msg_p3, msg_p4]):
+                    round_active = True
+                    clear_client_inputs()
+                else:
+                    try:
+                        send_obj(adr_p1, [s_p1, s_p2, s_p3, s_p4])
+                        send_obj(adr_p2, [s_p2, s_p1, s_p4, s_p3])
+                        send_obj(adr_p3, [s_p3, s_p4, s_p1, s_p2])
+                        send_obj(adr_p4, [s_p4, s_p3, s_p2, s_p1])
+                    except Exception as e:
+                        print("send error:", e)
+                    continue
+
             msg_p1 = None if msg_p1 == "" else msg_p1
             msg_p2 = None if msg_p2 == "" else msg_p2
             msg_p3 = None if msg_p3 == "" else msg_p3
             msg_p4 = None if msg_p4 == "" else msg_p4
 
 
-            s_p1, s_p2, s_p3, s_p4 = loop([msg_p1, msg_p2, msg_p3, msg_p4])
+            s_p1, s_p2, s_p3, s_p4 = gp.loop([msg_p1, msg_p2, msg_p3, msg_p4])
             if (s_p1.pv <= 0 and s_p2.pv <= 0) or (s_p3.pv <= 0 and s_p4.pv <= 0):
-                start()
+                gp.start()
+                round_active = False
+                clear_client_inputs()
+                s_p1, s_p2, s_p3, s_p4 = gp.p1, gp.p2, gp.p3, gp.p4
             try:
                 send_obj(adr_p1, [s_p1, s_p2, s_p3, s_p4])
                 send_obj(adr_p2, [s_p2, s_p1, s_p4, s_p3])

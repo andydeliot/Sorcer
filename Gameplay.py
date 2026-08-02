@@ -913,18 +913,28 @@ def start():
 
 def loop(commands):
     for i, c in enumerate(commands):
-        n, cible = c.split(";")
-        cible = int(cible)
-
         p = players[i]
-        if p is p1:
-            p.cible = [p1, p2, p3, p4][cible]
-        elif p is p2:
-            p.cible = [p2, p1, p4, p3][cible]
-        elif p is p3:
-            p.cible = [p3, p4, p1, p2][cible]
-        elif p is p4:
-            p.cible = [p4, p3, p2, p1][cible]
+        n = ""
+        cible = None
+        if isinstance(c, str) and ";" in c:
+            n, cible_str = c.split(";", 1)
+            try:
+                cible = int(cible_str)
+            except ValueError:
+                cible = None
+
+        if cible is not None:
+            try:
+                if p is p1:
+                    p.cible = [p1, p2, p3, p4][cible]
+                elif p is p2:
+                    p.cible = [p2, p1, p4, p3][cible]
+                elif p is p3:
+                    p.cible = [p3, p4, p1, p2][cible]
+                elif p is p4:
+                    p.cible = [p4, p3, p2, p1][cible]
+            except IndexError:
+                pass
 
         if p.time_deviation > 0 and p.deviation_cible is not None:
             p.cible = p.deviation_cible
@@ -932,7 +942,11 @@ def loop(commands):
             p.cible = p
 
         if n != "":
-            n = int(n)
+            try:
+                n = int(n)
+            except ValueError:
+                n = ""
+        if n != "":
             if p.spell is None:
                 try:
                     p.spell = p.s[n]
