@@ -20,6 +20,15 @@ def make_sorcer():
     return Sorcer([])
 
 
+def make_spell(spell_cls, *, cooldown=0, started=False, ended=False):
+    """Créer un sort prêt à l’emploi avec un cooldown et un état de cycle optionnels."""
+    spell = spell_cls()
+    spell.time_cooldown = cooldown
+    spell.started = started
+    spell.ended = ended
+    return spell
+
+
 def test_spell_description_is_available_from_docstring():
     spell = Boule_feu()
     assert spell.description is not None
@@ -601,21 +610,18 @@ class TestRalentissement:
 
 class TestVolDeTemps:
     def test_effet_locks_unused_spells_and_refunds_caster(self, caster, target, players):
-        ready = Laser()
-        ready.time_cooldown = 0
-        busy = Boule_feu()
-        busy.time_cooldown = 50
-        target.s = [ready, busy]
+        ready_spell = make_spell(Laser)
+        busy_spell = make_spell(Boule_feu, cooldown=50)
+        target.s = [ready_spell, busy_spell]
 
-        own_spell = Flash()
-        own_spell.time_cooldown = 150
+        own_spell = make_spell(Flash, cooldown=150)
         caster.s = [own_spell]
 
         VolDeTemps().effet(caster, target, players)
 
-        assert ready.time_cooldown == ready.c
-        assert busy.time_cooldown == 50
-        assert own_spell.time_cooldown == 50
+        assert ready_spell.time_cooldown == 0
+        assert busy_spell.time_cooldown == 50
+        assert own_spell.time_cooldown == 0
 
 
 class TestReanimation:
@@ -642,21 +648,36 @@ class TestReanimation:
 
 
 class TestPuissance:
-    def test_effet_sets_duration(self, caster, target, players):
+    def test_passive_accumulates_one_damage_every_20_ticks_without_damage(self, caster, target, players):
         spell = Puissance()
-        spell.effet(caster, target, players)
-        assert caster.time_puissance == spell.duree_puissance
-
-    def test_passive_deals_damage_every_twenty_ticks_without_damage(self, caster, target, players):
-        spell = Puissance()
-        spell.effet(caster, target, players)
-
+        assert caster.time_puissance == 0
         for _ in range(19):
             spell.passive(caster, target, players)
-        assert target.pv == target.pv_max
-
+        assert caster.time_puissance == 0
         spell.passive(caster, target, players)
-        assert target.pv == target.pv_max - 1
+        assert caster.time_puissance == 1
+        assert caster.puissance_ticks_since_damage == 0
+
+    def test_effet_deals_accumulated_damage_and_resets(self, caster, target, players):
+        spell = Puissance()
+        for _ in range(40):
+            spell.passive(caster, target, players)
+        assert caster.time_puissance == 2
+
+        spell.effet(caster, target, players)
+        assert target.pv == target.pv_max - 2
+        assert caster.time_puissance == 0
+        assert caster.puissance_ticks_since_damage == 0
+
+    def test_taking_damage_resets_the_accumulated_power(self, caster, target, players):
+        spell = Puissance()
+        for _ in range(20):
+            spell.passive(caster, target, players)
+        assert caster.time_puissance == 1
+
+        caster.dammage(5)
+        assert caster.time_puissance == 0
+        assert caster.puissance_ticks_since_damage == 0
 
 
 class TestDeviation:
@@ -691,9 +712,12 @@ class TestBaffe:
 
 class TestBouclier:
     def test_effet(self, caster, target, players):
-        Bouclier().effet(caster, target, players)
+        shield_spell = Bouclier()
+
+        shield_spell.effet(caster, target, players)
+
         assert target.shield == 25
-        assert target.time_shield == 300
+        assert target.time_shield == shield_spell.duree_shield
 
     def test_shield_fully_absorbs_small_hit(self, target):
         target.shield = 25
@@ -717,15 +741,18 @@ class TestBouclier:
 
 
 class TestConcentrationMagique:
-    def test_effet_damages_per_available_spell(self, caster, target, players):
-        ready1 = Laser(); ready1.time_cooldown = 0
-        ready2 = Flash(); ready2.time_cooldown = 0
-        busy = Boule_feu(); busy.time_cooldown = 10
-        target.s = [ready1, ready2, busy]
+    def test_effet_heals_per_available_spell(self, caster, target, players):
+        ready_spells = [make_spell(Laser), make_spell(Flash)]
+        busy_spell = make_spell(Boule_feu, cooldown=10)
+        target.s = ready_spells + [busy_spell]
+        target.pv = 900
 
-        ConcentrationMagique().effet(caster, target, players)
+        concentration = ConcentrationMagique()
+        concentration.effet(caster, target, players)
 
-        assert target.pv == target.pv_max - 20
+        available_spells = sum(1 for spell in target.s if spell.time_cooldown == 0)
+        expected_heal = 5 * available_spells
+        assert target.pv == 900 + expected_heal
 
 
 class TestPeineDeMort:
@@ -800,14 +827,16 @@ class TestRayonDeSoleil:
 class TestConcentrationSorts:
     def test_effet_damages_per_spell_currently_being_cast(self, four_players):
         p1, p2, p3, p4 = four_players
-        s1 = Laser(); s1.started = True; s1.ended = False
-        p2.spell = s1
-        s2 = Boule_feu(); s2.started = True; s2.ended = False
-        p3.spell = s2
+        active_spell_1 = make_spell(Laser, started=True, ended=False)
+        p2.spell = active_spell_1
+        active_spell_2 = make_spell(Boule_feu, started=True, ended=False)
+        p3.spell = active_spell_2
 
-        ConcentrationSorts().effet(p1, p4, four_players)
+        concentration = ConcentrationSorts()
+        concentration.effet(p1, p4, four_players)
 
-        assert p4.pv == p4.pv_max - 200
+        expected_damage = 75 * 2
+        assert p4.pv == p4.pv_max - expected_damage
 
 
 class TestRepetition:

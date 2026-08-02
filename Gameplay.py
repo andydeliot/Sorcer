@@ -471,11 +471,26 @@ class Reanimation(Spell):
             c.time_reanimation -= 1
 
 class Puissance(Spell):
-    """Cumule 1 dégat pour chaque 20 ticks durant lequel le lanceur n'a pas subit de dégats. """
+    """ Cumule 1 dégat pour chaque 20 ticks durant lequel le lanceur n'a pas subit de dégats.
+        Lorsque le sort est lancé, inflige tous les dégats cumulés à la cible.
+        Le cumule est remis à 0 dès que le lanceur subit un dégât. """
     def __init__(self):
         Spell.__init__(self, "Puissance", tc=50)
+
     def effet(self, l, c, p):
+        if l.time_puissance > 0:
+            c.dammage(l.time_puissance)
+        l.time_puissance = 0
         l.puissance_ticks_since_damage = 0
+
+    def passive(self, l, c, p):
+        if self.time_cooldown > 0:
+            self.time_cooldown -= 1
+        if l.pv > 0:
+            l.puissance_ticks_since_damage += 1
+            while l.puissance_ticks_since_damage >= 20:
+                l.time_puissance += 1
+                l.puissance_ticks_since_damage -= 20
 
 
 class Deviation(Spell):
@@ -625,6 +640,7 @@ class Nettoyage(Spell):
         c.time_slow = 0
         c.time_reanimation = 0
         c.time_puissance = 0
+        c.puissance_ticks_since_damage = 0
         c.time_deviation = 0
         c.deviation_cible = None
         c.shield = 0
@@ -738,7 +754,7 @@ class Prolongation(Spell):
     attributs_prolongeables = [
         "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
         "time_treve", "time_clone", "time_regeneration", "time_acceleration",
-        "time_slow", "time_reanimation", "time_puissance", "time_deviation",
+        "time_slow", "time_reanimation", "time_deviation",
         "time_shield", "time_death_penalty", "time_aveuglement", "time_canalisation",
         "time_inversion", "time_marque",
     ]
@@ -805,7 +821,7 @@ class Sorcer:
         if self.time_inversion > 0:
             self._heal_raw(d)
             return
-        self._dammage_raw(d)
+        self._dammage_raw(int(d))
 
     def _dammage_raw(self, d):
         if self.time_invincibilite == 0:
@@ -821,8 +837,9 @@ class Sorcer:
                 if self.pv <= 0 and d > 0 and self.time_reanimation > 0:
                     self.pv = int(self.pv_max/3)
                     self.time_reanimation = 0
-                else:
+                if d > 0:
                     self.puissance_ticks_since_damage = 0
+                    self.time_puissance = 0
                 self.pv = 0 if self.pv < 0 else self.pv
                 for link in self.linked:
                     if link[1] is not self:
@@ -860,7 +877,7 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-difficulte  = 10
+difficulte  = 26
 def start():
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte
     difficulte += 1
