@@ -893,15 +893,25 @@ class TestBouclier:
 
     def test_shield_fully_absorbs_small_hit(self, target):
         target.shield = 25
+        target.time_shield = 10
         target.dammage(10)
-        assert target.shield == 15
+        assert target.shield == 25
         assert target.pv == target.pv_max
 
     def test_shield_overflow_passes_through(self, target):
         target.shield = 25
+        target.time_shield = 10
         target.dammage(40)
-        assert target.shield == 0
+        assert target.shield == 25
         assert target.pv == target.pv_max - 15
+
+    def test_shield_blocks_25_on_each_hit_while_active(self, target):
+        target.shield = 25
+        target.time_shield = 10
+        target.dammage(40)
+        target.dammage(40)
+        assert target.shield == 25
+        assert target.pv == target.pv_max - 30
 
     def test_passive_expiry_clears_remaining_shield(self, target):
         spell = Bouclier()
@@ -946,6 +956,14 @@ class TestPeineDeMort:
         target.time_invincibilite = 10
         spell.passive(caster, target, players)
         assert target.pv == target.pv_max
+
+    def test_reanimation_prevents_death_once(self, caster, target, players):
+        spell = PeineDeMort()
+        target.time_death_penalty = 1
+        target.time_reanimation = 50
+        spell.passive(caster, target, players)
+        assert target.pv == int(target.pv_max / 3)
+        assert target.time_reanimation == 0
 
     def test_recast_resets_timer_and_prevents_scheduled_death(self, caster, target, players):
         spell = PeineDeMort()
@@ -1194,9 +1212,10 @@ class TestMarque:
         target.pv = target.pv_max
         target.time_marque = 10
         target.shield = 25
+        target.time_shield = 10
         target.dammage(100)
-        # 100 * 1.2 = 120 dégâts bruts, 25 absorbés par le bouclier -> 95 passent
-        assert target.shield == 0
+        # 100 * 1.2 = 120 dégâts bruts, 25 bloqués par le bouclier -> 95 passent
+        assert target.shield == 25
         assert target.pv == target.pv_max - 95
 
     def test_inversion_bypasses_the_mark_multiplier(self, target):

@@ -64,6 +64,7 @@ selected_spell_index = None
 
 def get_effect_labels(player):
     labels = []
+    labels += [f"Shield:{player.time_shield}"] if player.time_shield > 0 else []
     if player.interdit is not None:
         blocked_name = getattr(player.interdit, "n", "Unknown")
         labels.append(f"Blocked:{blocked_name}")
@@ -109,8 +110,6 @@ def get_effect_labels(player):
         labels.append(f"Puissance:{player.time_puissance}")
     if player.time_renvoi > 0:
         labels.append(f"Counter:{player.time_renvoi}")
-    if player.shield > 0:
-        labels.append(f"Shield:{player.shield}")
     if player.time_reanimation > 0:
         labels.append(f"Reanimate:{player.time_reanimation}")
     return labels if labels else ["No effect"]

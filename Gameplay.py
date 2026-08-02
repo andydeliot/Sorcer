@@ -543,10 +543,10 @@ class Baffe(Spell):
         c.dammage(10)
 
 class Bouclier(Spell):
-    """ Absorbe jusqu'à 25 points de dégâts pendant sa durée, même partiellement consommé. """
+    """ Réduit chaque source de dégâts de 25 pendant 4000 ticks. """
     def __init__(self):
         Spell.__init__(self, "Shield")
-        self.duree_shield = 500
+        self.duree_shield = 4000
 
     def effet(self, l, c, p):
         c.shield = 25
@@ -584,7 +584,7 @@ class PeineDeMort(Spell):
         expired_now = before > 0 and c.time_death_penalty == 0
         if (getattr(c, "death_penalty_armed", False) or expired_now) and c.time_death_penalty == 0:
             if c.time_invincibilite == 0:
-                c.pv = 0
+                c.force_death()
             c.death_penalty_armed = False
 
 class Esprit(Spell):
@@ -681,7 +681,7 @@ class Inversion(Spell):
     """ Pendant sa durée, les dégâts subis par la cible deviennent des soins et inversement. """
     def __init__(self):
         Spell.__init__(self, "Inversion", tc=100)
-        self.duree_inversion = 300
+        self.duree_inversion = 1000
 
     def effet(self, l, c, p):
         c.time_inversion = self.duree_inversion
@@ -691,12 +691,12 @@ class Inversion(Spell):
             self.time_cooldown -= 1
 
 class ProjectileMagique(Spell):
-    """ Inflige 50 dégâts à la cible et à son coéquipier. """
+    """ Inflige 75 dégâts à la cible et à son coéquipier. """
     def __init__(self):
         Spell.__init__(self, "Magic projectile")
 
     def effet(self, l, c, p):
-        c.dammage(50)
+        c.dammage(75)
         ally = get_ally(c, p)
         if ally is not None:
             ally.dammage(50)
@@ -848,6 +848,15 @@ class Sorcer:
             return
         self._dammage_raw(int(d))
 
+    def force_death(self):
+        if self.pv <= 0:
+            return
+        if self.time_reanimation > 0:
+            self.pv = int(self.pv_max/3)
+            self.time_reanimation = 0
+            return
+        self.pv = 0
+
     def tick_duration_counters(self):
         duration_attributes = [
             "time_poison", "time_silence", "time_renvoi", "time_invincibilite",
@@ -871,10 +880,8 @@ class Sorcer:
             if self.pv > 0:
                 if d > 0 and self.time_marque > 0:
                     d *= 1.2
-                if d > 0 and self.shield > 0:
-                    absorbe = min(self.shield, d)
-                    self.shield -= absorbe
-                    d -= absorbe
+                if d > 0 and self.time_shield > 0 and self.shield > 0:
+                    d = max(0, d - self.shield)
                 self.pv -= d
                 self.pv = int(self.pv)
                 if self.pv <= 0 and d > 0 and self.time_reanimation > 0:
