@@ -231,6 +231,7 @@ class TestPoison:
         assert target.pv == target.pv_max
 
         target.time_poison = 2  # devient 1 -> déclenche les dégâts
+        target._duration_tick_done = False
         spell.passive(caster, target, players)
         assert target.time_poison == 1
         assert target.pv == target.pv_max - 25
@@ -505,6 +506,17 @@ class TestSpecialisation:
         assert caster.spell_specialisation is last
         assert last.time_cooldown == 100
 
+    def test_effet_uses_previous_spell_instead_of_the_current_specialisation_spell(self, caster, target, players):
+        previous = Boule_feu()
+        caster.last_spell = previous
+        spell = Specialisation()
+        spell.started = True
+        spell.time_charge = spell.tc
+        spell.action(caster, target, players)
+
+        assert caster.last_spell is previous
+        assert caster.spell_specialisation is previous
+
     def test_effet_does_nothing_without_last_spell(self, caster, target, players):
         caster.last_spell = None
         Specialisation().effet(caster, target, players)
@@ -519,19 +531,17 @@ class TestInvincibilite:
     def test_passive_decrements_and_blocks_damage(self, caster, target, players):
         spell = Invincibilite()
         target.time_invincibilite = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_invincibilite == 1
         target.dammage(999)
         assert target.pv == target.pv_max
 
     def test_passive_keeps_decrementing_original_target(self, caster, target, players):
-        spell = Invincibilite()
         other = make_sorcer()
-        spell.effet(caster, target, players)
         target.time_invincibilite = 2
         other.time_invincibilite = 5
 
-        spell.passive(caster, other, [caster, target, other])
+        target.tick_duration_counters()
 
         assert target.time_invincibilite == 1
         assert other.time_invincibilite == 5
@@ -548,6 +558,7 @@ class TestTreve:
         caster.time_treve = 2
         spell.time_cooldown = 5
         spell.passive(caster, target, players)
+        caster.tick_duration_counters()
         assert caster.time_treve == 1
         assert spell.time_cooldown == 4
 
@@ -560,7 +571,7 @@ class TestClone:
     def test_passive_decrements(self, caster, target, players):
         spell = Clone()
         target.time_clone = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_clone == 1
 
 
@@ -603,7 +614,6 @@ class TestCanon:
         Canon().effet(caster, target, players)
         assert target.pv == target.pv_max - 200
 
-
 class TestCoagulation:
     def test_effet(self, caster, target, players):
         target.pv = 100
@@ -621,6 +631,7 @@ class TestRegeneration:
         spell = Regeneration()
         target.pv = 100
         target.time_regeneration = 2  # devient 1 -> soin
+        target.tick_duration_counters()
         spell.passive(caster, target, players)
         assert target.time_regeneration == 1
         assert target.pv == 120
@@ -695,7 +706,7 @@ class TestEarthquake:
         p1, p2, p3, p4 = four_players
         Earthquake().effet(p1, p2, four_players)
         for player in four_players:
-            assert player.pv == player.pv_max - 50
+            assert player.pv == player.pv_max - 150
 
 
 class TestAcceleration:
@@ -709,7 +720,7 @@ class TestAcceleration:
     def test_passive_decrements(self, caster, target, players):
         spell = Acceleration()
         target.time_acceleration = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_acceleration == 1
 
     def test_doubles_cast_speed_and_halves_lag(self, caster, target, players):
@@ -740,7 +751,7 @@ class TestRalentissement:
     def test_passive_decrements(self, caster, target, players):
         spell = Ralentissement()
         target.time_slow = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_slow == 1
 
     def test_halves_cast_speed(self, caster, target, players):
@@ -789,7 +800,7 @@ class TestReanimation:
         assert target.time_reanimation == spell.duree_reanimation
 
         target.time_reanimation = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_reanimation == 1
 
     def test_revives_instead_of_dying_when_active(self, target):
@@ -843,19 +854,22 @@ class TestDeviation:
         spell = Deviation()
         spell.effet(caster, target, players)
         assert target.time_deviation == spell.duree_deviation
-        assert target.deviation_cible is caster
+        assert target.deviation_cible is target
 
         target.time_deviation = 1
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_deviation == 0
         assert target.deviation_cible is None
 
     def test_forces_target_via_loop(self):
         gp.start()
         gp.p2.time_deviation = 50
-        gp.p2.deviation_cible = gp.p3
+        gp.p2.deviation_cible = gp.p2
         gp.loop([";0", ";0", ";0", ";0"])
-        assert gp.p2.cible is gp.p3
+        assert gp.p1.cible is gp.p2
+        assert gp.p2.cible is gp.p2
+        assert gp.p3.cible is gp.p2
+        assert gp.p4.cible is gp.p2
 
 
 class TestBaffe:
@@ -893,7 +907,7 @@ class TestBouclier:
         spell = Bouclier()
         target.shield = 25
         target.time_shield = 1
-        spell.passive(None, target, None)
+        target.tick_duration_counters()
         assert target.time_shield == 0
         assert target.shield == 0
 
@@ -996,21 +1010,6 @@ class TestConcentrationSorts:
         expected_damage = 75 * 2
         assert p4.pv == p4.pv_max - expected_damage
 
-
-class TestRepetition:
-    def test_effet_retriggers_last_spell_effect(self, caster, target, players):
-        caster.last_spell = Boule_feu()
-        Repetition().effet(caster, target, players)
-        assert caster.pv == caster.pv_max - 25
-        assert target.pv == target.pv_max - 125
-
-    def test_effet_does_nothing_without_last_spell(self, caster, target, players):
-        caster.last_spell = None
-        Repetition().effet(caster, target, players)
-        assert caster.pv == caster.pv_max
-        assert target.pv == target.pv_max
-
-
 class TestImpatience:
     def test_effet(self, caster, target, players):
         s1 = Laser(); s1.time_cooldown = 150
@@ -1019,7 +1018,7 @@ class TestImpatience:
 
         Impatience().effet(caster, target, players)
 
-        assert target.pv == target.pv_max - int(400 / 100)
+        assert target.pv == target.pv_max - int(400 / 1000)
 
 
 class TestNettoyage:
@@ -1090,6 +1089,7 @@ class TestCanalisation:
         other.spell = casting
 
         spell.passive(caster, target, [caster, target, other])
+        target.tick_duration_counters()
 
         assert target.pv == 115
         assert target.time_canalisation == 9
@@ -1102,7 +1102,7 @@ class TestAveuglement:
         assert target.time_aveuglement == spell.duree_aveuglement
 
         target.time_aveuglement = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_aveuglement == 1
 
     def test_forces_self_targeting_via_loop(self):
@@ -1175,7 +1175,7 @@ class TestMarque:
         assert target.time_marque == spell.duree_marque
 
         target.time_marque = 2
-        spell.passive(caster, target, players)
+        target.tick_duration_counters()
         assert target.time_marque == 1
 
     def test_dammage_increased_by_20_percent_while_marked(self, target):

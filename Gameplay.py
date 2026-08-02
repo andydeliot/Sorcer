@@ -46,6 +46,7 @@ class Spell:
         self.duree = 0
         self.ended = False
         self.time_lag = 0
+        self._last_spell_registered = False
 
     def _build_description(self):
         doc = self.__class__.__doc__
@@ -73,6 +74,10 @@ class Spell:
             self.duree += 1
             self.effect_target = c
             if self.duree <= self.d:
+                if not getattr(self, "_last_spell_registered", False):
+                    if not isinstance(self, (Repetition, Specialisation)):
+                        l.last_spell = self
+                    self._last_spell_registered = True
                 self.effet(l, c, p)
             else:
                 self.ended = True
@@ -92,7 +97,6 @@ class Spell:
                     self.time_cooldown = int(self.time_cooldown/3)
                 l.spell = None
                 l.busy = False
-                l.last_spell = self
 
     def passive(self, l, c, p):
         """ Cooldown. """
@@ -517,14 +521,14 @@ class Puissance(Spell):
 
 
 class Deviation(Spell):
-    """ Force la cible à lancer ses sorts sur le lanceur, tant que l'effet dure. """
+    """ Force tous les joueurs à lancer ses sorts sur la cible, tant que l'effet dure. """
     def __init__(self):
         Spell.__init__(self, "Deviation")
         self.duree_deviation = 600
 
     def effet(self, l, c, p):
         c.time_deviation = self.duree_deviation
-        c.deviation_cible = l
+        c.deviation_cible = c
 
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
@@ -640,7 +644,7 @@ class Impatience(Spell):
 
     def effet(self, l, c, p):
         total = sum(s.time_cooldown for s in c.s)
-        c.dammage(int(total / 100))
+        c.dammage(int(total / 1000))
 
 class Nettoyage(Spell):
     """ Annule tous les effets passifs actuellement actifs sur la cible. """
@@ -938,6 +942,15 @@ def start():
     print("New fight")
 
 def loop(commands):
+    forced_deviation_target = next(
+        (
+            player.deviation_cible
+            for player in players
+            if player.time_deviation > 0 and player.deviation_cible is not None
+        ),
+        None,
+    )
+
     for i, c in enumerate(commands):
         p = players[i]
         n = ""
@@ -962,10 +975,10 @@ def loop(commands):
             except IndexError:
                 pass
 
-        if p.time_deviation > 0 and p.deviation_cible is not None:
-            p.cible = p.deviation_cible
         if p.time_aveuglement > 0:
             p.cible = p
+        if forced_deviation_target is not None:
+            p.cible = forced_deviation_target
 
         if n != "":
             try:
