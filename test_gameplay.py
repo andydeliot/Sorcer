@@ -439,6 +439,14 @@ class TestFlash:
         Flash().effet(caster, target, players)
         assert target.pv == target.pv_max - 20
 
+    def test_effet_finishes_target_below_ten_percent_max_hp(self, caster, target, players):
+        target.pv = 90
+        target.pv_max = 1000
+
+        Flash().effet(caster, target, players)
+
+        assert target.pv == 0
+
 
 class TestCanon:
     def test_effet(self, caster, target, players):

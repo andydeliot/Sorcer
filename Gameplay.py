@@ -336,15 +336,17 @@ class Retour(Spell):
                 c.pv = c.vie_retour
 
 class Flash(Spell):
-    """Inflige instantanément 20 dégâts à la cible."""
+    """ Inflige instantanément 20 dégâts à la cible. Achève la cible si celle-ci possède moins de 10% de ses points de vie max. """
     def __init__(self):
         Spell.__init__(self, "Flash", tc=0, d=1)
 
     def effet(self, l, c, p):
         c.dammage(20)
+        if c.pv > 0 and c.pv <= int(c.pv_max * 0.1):
+            c.pv = 0
 
 class Canon(Spell):
-    """Charge pendant 400 ticks puis frappe la cible pour 200 dégâts."""
+    """ Charge pendant 400 ticks puis frappe la cible pour 200 dégâts. """
     def __init__(self):
         Spell.__init__(self, "Cannon", tc=400, d=1)
     
@@ -352,7 +354,7 @@ class Canon(Spell):
         c.dammage(200)
 
 class Coagulation(Spell):
-    """Soigne la cible de 1 point à chaque tick pendant 150 ticks."""
+    """ Soigne la cible de 1 point à chaque tick pendant 150 ticks. """
     def __init__(self):
         Spell.__init__(self, "Coagulation", d=150)
 
@@ -360,7 +362,7 @@ class Coagulation(Spell):
         c.heal(1)
 
 class Regeneration(Spell):
-    """Applique une régénération régulière à la cible pendant 500 ticks."""
+    """ Applique une régénération régulière à la cible pendant 500 ticks. """
     def __init__(self):
         Spell.__init__(self, "Regeneration")
         self.duree_regeneration = 500
@@ -377,7 +379,7 @@ class Regeneration(Spell):
             c.heal(20)
 
 class Annulation(Spell):
-    """Force le sort cible à s'achever immédiatement et met son cooldown à son maximum."""
+    "" "Force le sort cible à s'achever immédiatement et met son cooldown à son maximum. """
     def __init__(self):
         Spell.__init__(self, "Cancelation", tc=50)
 
@@ -388,7 +390,7 @@ class Annulation(Spell):
             c.spell.ended = True
 
 class VolDeSort(Spell):
-    """Vole le sort actuellement lancé par la cible et échange ce sort avec le lanceur."""
+    """ Vole le sort actuellement lancé par la cible et échange ce sort avec le lanceur. """
     def __init__(self):
         Spell.__init__(self, "Spell steal", tc=0)
 
