@@ -444,7 +444,7 @@ class Acceleration(Spell):
     """ Accélère les lancers (x2) et le lag (/2) du joueur ciblé ; annule Slow. """
     def __init__(self):
         Spell.__init__(self, "Speed up")
-        self.duree_acceleration = 800
+        self.duree_acceleration = 2500
 
     def effet(self, l, c, p):
         c.time_acceleration = self.duree_acceleration
@@ -458,7 +458,7 @@ class Ralentissement(Spell):
     """ Ralentit les lancers (/2) et augmente les cooldowns (x2) du joueur ciblé ; annule Acceleration. """
     def __init__(self):
         Spell.__init__(self, "Slow")
-        self.duree_slow = 1000
+        self.duree_slow = 2500
 
     def effet(self, l, c, p):
         c.time_slow = self.duree_slow
