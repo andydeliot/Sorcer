@@ -80,7 +80,7 @@ threading.Thread(target=receive_loop, daemon=True).start()
 
 def game_loop():
     clock = pygame.time.Clock()
-    gp.start()
+    gp.start(reset_scores=True)
     round_active = False
 
     def clear_client_inputs():
@@ -112,10 +112,11 @@ def game_loop():
                     clear_client_inputs()
                 else:
                     try:
-                        send_obj(adr_p1, [s_p1, s_p2, s_p3, s_p4])
-                        send_obj(adr_p2, [s_p2, s_p1, s_p4, s_p3])
-                        send_obj(adr_p3, [s_p3, s_p4, s_p1, s_p2])
-                        send_obj(adr_p4, [s_p4, s_p3, s_p2, s_p1])
+                        scores = gp.get_team_scores()
+                        send_obj(adr_p1, {"players": [s_p1, s_p2, s_p3, s_p4], "scores": [scores[0], scores[1]]})
+                        send_obj(adr_p2, {"players": [s_p2, s_p1, s_p4, s_p3], "scores": [scores[0], scores[1]]})
+                        send_obj(adr_p3, {"players": [s_p3, s_p4, s_p1, s_p2], "scores": [scores[1], scores[0]]})
+                        send_obj(adr_p4, {"players": [s_p4, s_p3, s_p2, s_p1], "scores": [scores[1], scores[0]]})
                     except Exception as e:
                         print("send error:", e)
                     continue
@@ -128,15 +129,16 @@ def game_loop():
 
             s_p1, s_p2, s_p3, s_p4 = gp.loop([msg_p1, msg_p2, msg_p3, msg_p4])
             if (s_p1.pv <= 0 and s_p2.pv <= 0) or (s_p3.pv <= 0 and s_p4.pv <= 0):
-                gp.start()
+                gp.start(reset_scores=False)
                 round_active = False
                 clear_client_inputs()
                 s_p1, s_p2, s_p3, s_p4 = gp.p1, gp.p2, gp.p3, gp.p4
             try:
-                send_obj(adr_p1, [s_p1, s_p2, s_p3, s_p4])
-                send_obj(adr_p2, [s_p2, s_p1, s_p4, s_p3])
-                send_obj(adr_p3, [s_p3, s_p4, s_p1, s_p2])
-                send_obj(adr_p4, [s_p4, s_p3, s_p2, s_p1])
+                scores = gp.get_team_scores()
+                send_obj(adr_p1, {"players": [s_p1, s_p2, s_p3, s_p4], "scores": [scores[0], scores[1]]})
+                send_obj(adr_p2, {"players": [s_p2, s_p1, s_p4, s_p3], "scores": [scores[0], scores[1]]})
+                send_obj(adr_p3, {"players": [s_p3, s_p4, s_p1, s_p2], "scores": [scores[1], scores[0]]})
+                send_obj(adr_p4, {"players": [s_p4, s_p3, s_p2, s_p1], "scores": [scores[1], scores[0]]})
             except Exception as e:
                 print("send error:", e)
 

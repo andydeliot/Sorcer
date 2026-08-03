@@ -20,6 +20,20 @@ def make_sorcer():
     return Sorcer([])
 
 
+def test_update_team_scores_increments_winning_team():
+    gp.reset_team_scores()
+    gp.start()
+
+    gp.p1.pv = 0
+    gp.p2.pv = 0
+    gp.p3.pv = 100
+    gp.p4.pv = 100
+
+    gp.update_team_scores()
+
+    assert gp.get_team_scores() == [0, 1]
+
+
 def make_spell(spell_cls, *, cooldown=0, started=False, ended=False):
     """Créer un sort prêt à l’emploi avec un cooldown et un état de cycle optionnels."""
     spell = spell_cls()
@@ -417,13 +431,10 @@ class TestExodia:
         assert caster.nbr_exodia == 1
         assert target.pv == target.pv_max
 
-    def test_effet_wipes_all_players_at_five_stacks(self, caster, target, players):
-        # NB : effet() compare `player is not self` (self = l'objet Spell), qui est
-        # toujours vrai pour un Sorcer -> tous les joueurs de `p` sont mis à 0 pv,
-        # y compris le lanceur. Ce test documente le comportement actuel du code.
+    def test_effet_wipes_enemy_team_at_five_stacks(self, caster, target, players):
         ally = make_sorcer()
         enemy2 = make_sorcer()
-        all_players = [caster, target, ally, enemy2]
+        all_players = [caster, ally, target, enemy2]
 
         spell = Exodia()
         caster.nbr_exodia = 4
@@ -432,8 +443,19 @@ class TestExodia:
         assert caster.nbr_exodia == 0
         assert target.pv == 0
         assert enemy2.pv == 0
-        assert ally.pv == 0
-        assert caster.pv == 0
+        assert ally.pv == ally.pv_max
+        assert caster.pv == caster.pv_max
+
+    def test_exodia_victory_increments_team_score(self):
+        gp.reset_team_scores()
+        gp.start()
+
+        spell = Exodia()
+        gp.p1.nbr_exodia = 4
+        spell.effet(gp.p1, gp.p3, [gp.p1, gp.p2, gp.p3, gp.p4])
+        gp.update_team_scores([gp.p1, gp.p2, gp.p3, gp.p4])
+
+        assert gp.get_team_scores() == [1, 0]
 
 
 class TestMultiplicateur:
@@ -912,6 +934,13 @@ class TestBouclier:
         target.dammage(40)
         assert target.shield == 25
         assert target.pv == target.pv_max - 30
+
+    def test_shield_caps_large_hit_at_150_damage(self, target):
+        target.shield = 25
+        target.time_shield = 10
+        target.dammage(200)
+        assert target.shield == 25
+        assert target.pv == target.pv_max - 150
 
     def test_passive_expiry_clears_remaining_shield(self, target):
         spell = Bouclier()

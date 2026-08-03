@@ -3,6 +3,9 @@ import copy
 difficulte  = 26
 cooldown_base = int(15000/26) * difficulte
 
+team_scores = [0, 0]
+team_winner = None
+
 
 def get_spell_preview_text(spell):
     """Retourne le texte de prévisualisation d'un sort pour l'interface."""
@@ -254,8 +257,11 @@ class Exodia(Spell):
     def effet(self, l, c, p):
         l.nbr_exodia += 1
         if l.nbr_exodia >= 5:
+            ally = get_ally(l, p)
             for player in p:
-                if player is not self:
+                if player is l or player is ally:
+                    continue
+                if getattr(player, "pv", 0) > 0:
                     player.pv = 0
             l.nbr_exodia = 0
 
@@ -543,13 +549,14 @@ class Baffe(Spell):
         c.dammage(10)
 
 class Bouclier(Spell):
-    """ Réduit chaque source de dégâts de 25 pendant 4000 ticks. """
+    """ Réduit chaque source de dégâts de 25 et absorbe les dégâts supérieur à 150 pendant 4000 ticks. """
     def __init__(self):
         Spell.__init__(self, "Shield")
         self.duree_shield = 3000
 
     def effet(self, l, c, p):
         c.shield = 25
+        c.shield_max = 150
         c.time_shield = self.duree_shield
 
     def passive(self, l, c, p):
@@ -881,7 +888,7 @@ class Sorcer:
                 if d > 0 and self.time_marque > 0:
                     d *= 1.2
                 if d > 0 and self.time_shield > 0 and self.shield > 0:
-                    d = max(0, d - self.shield)
+                    d = min(self.shield_max, max(0, d - self.shield)) if d > self.shield_max else max(0, d - self.shield)
                 self.pv -= d
                 self.pv = int(self.pv)
                 if self.pv <= 0 and d > 0 and self.time_reanimation > 0:
@@ -927,7 +934,51 @@ class Sorcer:
                         link[2].pv = link[2].pv_max if link[2].pv > link[2].pv_max else link[2].pv
 
 
-def start():
+def reset_team_scores():
+    global team_scores, team_winner
+    team_scores = [0, 0]
+    team_winner = None
+
+
+def get_team_scores(players_list=None):
+    return list(team_scores)
+
+
+def update_team_scores(players_list=None):
+    global team_scores, team_winner
+
+    if players_list is None:
+        players_list = globals().get("players")
+    if players_list is None:
+        players_list = [globals().get("p1"), globals().get("p2"), globals().get("p3"), globals().get("p4")]
+
+    team_a_players = globals().get("team_a")
+    if team_a_players is None or len(team_a_players) < 2:
+        team_a_players = players_list[:2]
+    team_b_players = globals().get("team_b")
+    if team_b_players is None or len(team_b_players) < 2:
+        team_b_players = players_list[2:4]
+
+    team_a_alive = any(getattr(player, "pv", 0) > 0 for player in team_a_players)
+    team_b_alive = any(getattr(player, "pv", 0) > 0 for player in team_b_players)
+
+    if team_a_alive and not team_b_alive:
+        winner = 0
+    elif team_b_alive and not team_a_alive:
+        winner = 1
+    else:
+        winner = None
+
+    if winner is not None and team_winner != winner:
+        team_scores[winner] += 1
+        team_winner = winner
+    elif winner is None:
+        team_winner = None
+
+    return list(team_scores)
+
+
+def start(reset_scores=True):
     global p1, p2, p3, p4, players, team_a, team_b, spells, difficulte, cooldown_base
     difficulte += 1
     difficulte = min(difficulte, 26)
@@ -943,6 +994,8 @@ def start():
     players = [p1, p2, p3, p4]
     team_a = [p1, p2] # Not used.
     team_b = [p3, p4] # Not used.
+    if reset_scores:
+        reset_team_scores()
 
     Troc.utilisation_totale = 0
 
@@ -1044,5 +1097,7 @@ def loop(commands):
                     else:
                         s_clone.action(p, p.cible, players)
                     s_clone.end(p, p.cible, players)
+
+    update_team_scores(players)
 
     return p1, p2, p3, p4

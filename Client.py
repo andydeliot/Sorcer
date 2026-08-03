@@ -26,11 +26,21 @@ def send_obj(obj):
 # receive
 # -------------------------
 def recv_loop():
-    global p1, p2, p3, p4
+    global p1, p2, p3, p4, team_scores_client
     while True:
         data, _ = client.recvfrom(65536)
         size = struct.unpack("!I", data[:4])[0]
-        p1, p2, p3, p4 = pickle.loads(data[4:4+size])
+        payload = pickle.loads(data[4:4+size])
+        if isinstance(payload, dict):
+            players_payload = payload.get("players")
+            scores_payload = payload.get("scores")
+            if isinstance(players_payload, list) and len(players_payload) == 4:
+                p1, p2, p3, p4 = players_payload
+            if isinstance(scores_payload, (list, tuple)) and len(scores_payload) == 2:
+                team_scores_client = [int(scores_payload[0]), int(scores_payload[1])]
+        elif isinstance(payload, list) and len(payload) == 4:
+            # Compatibilite avec l'ancien format serveur.
+            p1, p2, p3, p4 = payload
 
 threading.Thread(target=recv_loop, daemon=True).start()
 
@@ -50,12 +60,13 @@ header_font = pygame.font.Font(font_name, 24)
 from random import randint
 
 fenetre = pygame.display.set_mode((1800, 900))
-pygame.display.set_caption("Sorcer 2")
+pygame.display.set_caption("Sorcer 3")
 
 
 running = True
 
 p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
+team_scores_client = [0, 0]
 cible = 2
 msg = ""
 spell_description = ""
@@ -227,13 +238,19 @@ while running:
     fenetre.fill((0,0,0))
 
     players = [p1, p2, p3, p4]
+    scores = team_scores_client
     names = ["You", "Your ally", "First enemy", "Second enemy"]
     panel_width = 380
     panel_height = 220
     panel_margin = 18
-    panel_y = 20
+    panel_y = 60
     spells_panel_width = 800
     spells_panel_x = 20
+
+    team_a_score_surface = my_font.render(f"Équipe A : {scores[0]}", False, (255, 255, 255))
+    team_b_score_surface = my_font.render(f"Équipe B : {scores[1]}", False, (255, 255, 255))
+    fenetre.blit(team_a_score_surface, (spells_panel_x + spells_panel_width + 120 + 100, 20))
+    fenetre.blit(team_b_score_surface, (spells_panel_x + spells_panel_width + 120 + panel_width + panel_margin + 100, 20))
 
     player_centers = []
     for i, player in enumerate(players):
@@ -328,7 +345,7 @@ while running:
             my_font,
             (255, 255, 255),
             1000,
-            500,
+            540,
             600,
         )
 
@@ -343,12 +360,17 @@ while running:
         colonne_x = 0 if i < 26 else colonne2_x
         ligne_y = y0 + (i % 26) * espace
 
-        c = ((s.c-s.time_cooldown) / s.c)*125+50
-        couleur = (c, c, c)
+        # Pygame exige des composantes entières dans [0, 255].
+        if s.c > 0:
+            channel = int(((s.c - s.time_cooldown) / s.c) * 125 + 50)
+        else:
+            channel = 50
+        channel = max(0, min(255, channel))
+        couleur = (channel, channel, channel)
         if s is p1.interdit:
             couleur = (255, 0, 0)
         elif s is p1.spell_specialisation:
-            couleur = (c, c, 255)
+            couleur = (channel, channel, 255)
         elif s.time_cooldown == 0:
             couleur = (0, 255, 0)
         text_surface = my_font.render(str(f"({label}) {s.n} :"), False, couleur)
