@@ -65,13 +65,31 @@ if font_name is None:
     font_name = pygame.font.match_font('Arial')
 if font_name is None:
     font_name = pygame.font.match_font('DejaVu Sans')
+if font_name is None:
+    font_name = pygame.font.get_default_font()
+
+title_font = pygame.font.Font(font_name, 30)
+title_font.set_bold(True)
+header_font = pygame.font.Font(font_name, 24)
+header_font.set_bold(True)
 my_font = pygame.font.Font(font_name, 20)
 small_font = pygame.font.Font(font_name, 16)
-header_font = pygame.font.Font(font_name, 24)
+tiny_font = pygame.font.Font(font_name, 14)
 from random import randint
 
 fenetre = pygame.display.set_mode((1800, 900))
-pygame.display.set_caption("Sorcer 3")
+pygame.display.set_caption("Sorcer 3 - Client")
+
+BG_COLOR = (7, 12, 24)
+PANEL_COLOR = (20, 28, 44)
+PANEL_SHADOW = (0, 0, 0)
+TEXT_COLOR = (245, 247, 250)
+MUTED_COLOR = (165, 181, 199)
+ACCENT_COLOR = (0, 180, 255)
+ACCENT_2 = (92, 140, 255)
+GOOD_COLOR = (68, 220, 120)
+BAD_COLOR = (255, 92, 92)
+SPELL_COLOR = (255, 220, 120)
 
 
 running = True
@@ -154,6 +172,17 @@ def draw_wrapped_text(surface, text, font, color, x, y, max_width):
     for index, line in enumerate(lines):
         line_surface = font.render(line, False, color)
         surface.blit(line_surface, (x, y + index * 24))
+
+
+def draw_panel(surface, rect, title=None, accent_color=ACCENT_COLOR):
+    shadow_rect = rect.move(6, 6)
+    pygame.draw.rect(surface, PANEL_SHADOW, shadow_rect)
+    pygame.draw.rect(surface, PANEL_COLOR, rect)
+    pygame.draw.rect(surface, accent_color, rect, 2)
+    if title:
+        title_surface = header_font.render(title, False, TEXT_COLOR)
+        surface.blit(title_surface, (rect.x + 16, rect.y + 12))
+
 
 clock = pygame.time.Clock()
 while running:
@@ -246,7 +275,13 @@ while running:
                 spell_description = ""
 
 
-    fenetre.fill((0,0,0))
+    fenetre.fill(BG_COLOR)
+
+    top_bar = pygame.Rect(0, 0, 1800, 70)
+    pygame.draw.rect(fenetre, (12, 21, 38), top_bar)
+    pygame.draw.rect(fenetre, ACCENT_COLOR, top_bar, 2)
+    title_surface = title_font.render("Sorcer 3 • Client", False, TEXT_COLOR)
+    fenetre.blit(title_surface, (24, 18))
 
     players = [p1, p2, p3, p4]
     scores = team_scores_client
@@ -254,8 +289,8 @@ while running:
     panel_width = 380
     panel_height = 220
     panel_margin = 18
-    panel_y = 60
-    spells_panel_width = 800
+    panel_y = 95
+    spells_panel_width = 770
     spells_panel_x = 20
 
     team_a_score_surface = my_font.render(f"Équipe A : {scores[0]}", False, (255, 255, 255))
@@ -272,15 +307,12 @@ while running:
             x = spells_panel_x + spells_panel_width + 120 + panel_width + panel_margin
             y = panel_y + (i - 2) * (panel_height + panel_margin)
         is_target = i == cible
-        border_color = (0, 180, 255) if is_target else (120, 120, 120)
-        pygame.draw.rect(fenetre, (30, 30, 30), (x, y, panel_width, panel_height))
-        pygame.draw.rect(fenetre, border_color, (x, y, panel_width, panel_height), 3)
-
-        title_surface = header_font.render(names[i], False, (255, 255, 255))
-        fenetre.blit(title_surface, (x + 10, y + 10))
+        border_color = ACCENT_COLOR if is_target else (120, 130, 150)
+        panel_rect = pygame.Rect(x, y, panel_width, panel_height)
+        draw_panel(fenetre, panel_rect, title=names[i], accent_color=border_color)
 
         hp_text = f"PV: {player.pv}/{player.pv_max}"
-        hp_surface = my_font.render(hp_text, False, (255, 255, 255))
+        hp_surface = my_font.render(hp_text, False, TEXT_COLOR)
         fenetre.blit(hp_surface, (x + 10, y + 45))
 
         hp_ratio = max(0, min(1, player.pv / player.pv_max)) if player.pv_max > 0 else 0
@@ -289,12 +321,12 @@ while running:
         bar_x = x + 10
         bar_y = y + 75
         pygame.draw.rect(fenetre, (80, 80, 80), (bar_x, bar_y, bar_width, bar_height))
-        pygame.draw.rect(fenetre, (0, 220, 0), (bar_x, bar_y, int(bar_width * hp_ratio), bar_height))
+        pygame.draw.rect(fenetre, GOOD_COLOR if player.pv > 0 else BAD_COLOR, (bar_x, bar_y, int(bar_width * hp_ratio), bar_height))
 
         effect_labels = get_effect_labels(player)
         effect_y = y + 100
         for j, label in enumerate(effect_labels[:5]):
-            effect_surface = small_font.render(label, False, (255, 255, 255))
+            effect_surface = small_font.render(label, False, MUTED_COLOR)
             fenetre.blit(effect_surface, (x + 10, effect_y + j * 18))
 
         # stocke le centre du panneau pour dessiner les flèches ensuite
@@ -307,10 +339,10 @@ while running:
             if player.spell.tc + player.spell.d + player.spell.tl > 0:
                 time_end = player.spell.tc + player.spell.d + player.spell.tl - player.spell.time_charge - player.spell.duree - player.spell.time_lag
                 spell_text += f" ({time_end})"
-            spell_surface = small_font.render(spell_text, False, (255, 220, 120))
+            spell_surface = small_font.render(spell_text, False, SPELL_COLOR)
             fenetre.blit(spell_surface, (x + 10, y + 190))
         else:
-            no_spell_surface = small_font.render("No spell in progress", False, (180, 180, 180))
+            no_spell_surface = small_font.render("No spell in progress", False, MUTED_COLOR)
             fenetre.blit(no_spell_surface, (x + 10, y + 190))
 
     # Dessiner les flèches colorées indiquant la cible de chaque joueur
@@ -349,26 +381,18 @@ while running:
             right = (ax - ux * ah + uy * aw, ay - uy * ah - ux * aw)
             pygame.draw.polygon(fenetre, color, [ (ax, ay), left, right ])
 
-    if spell_description:
-        draw_wrapped_text(
-            fenetre,
-            f"{spell_description}",
-            my_font,
-            (255, 255, 255),
-            1000,
-            540,
-            600,
-        )
+    spells_panel = pygame.Rect(15, 90, 850, 800)
+    draw_panel(fenetre, spells_panel)
 
     espace = 30
     azerty = "azertyuiopqsdfghjklmwxcvbn"
     colonne2_x = 500  # colonne des sorts accessibles via Maj + lettre (indices 26 à 51)
 
-    y0 = espace*2
+    y0 = 100
     for i, s in enumerate(p1.s):
         lettre = azerty[i % 26]
         label = lettre if i < 26 else f"Maj+{lettre}"
-        colonne_x = 0 if i < 26 else colonne2_x
+        colonne_x = 20 if i < 26 else 520
         ligne_y = y0 + (i % 26) * espace
 
         # Pygame exige des composantes entières dans [0, 255].
@@ -379,18 +403,29 @@ while running:
         channel = max(0, min(255, channel))
         couleur = (channel, channel, channel)
         if s is p1.interdit:
-            couleur = (255, 0, 0)
+            couleur = BAD_COLOR
         elif s is p1.spell_specialisation:
             couleur = (channel, channel, 255)
         elif s.time_cooldown == 0:
-            couleur = (0, 255, 0)
+            couleur = GOOD_COLOR
         text_surface = my_font.render(str(f"({label}) {s.n} :"), False, couleur)
-        fenetre.blit(text_surface, (colonne_x,ligne_y+25))
-        text_surface = my_font.render(str(f"{s.time_cooldown}"), False, couleur);
-        fenetre.blit(text_surface, (colonne_x+180, ligne_y+25))
-        text_surface = my_font.render(str(f"{(s.tc - s.time_charge)}; {(s.d - s.duree)};"), False, couleur)
-        fenetre.blit(text_surface, (colonne_x+250, ligne_y+25))
-    
+        fenetre.blit(text_surface, (colonne_x, ligne_y))
+        text_surface = my_font.render(str(f"{s.time_cooldown}"), False, couleur)
+        fenetre.blit(text_surface, (colonne_x + 275, ligne_y))
+
+    if spell_description:
+        spell_card = pygame.Rect(900, 600, 760, 180)
+        draw_panel(fenetre, spell_card, title="Selected spell", accent_color=ACCENT_2)
+        draw_wrapped_text(
+            fenetre,
+            f"{spell_description}",
+            my_font,
+            TEXT_COLOR,
+            920,
+            640,
+            720,
+        )
+
     pygame.display.flip()
 
     clock.tick(50)

@@ -96,10 +96,10 @@ class ProcessGroup:
         if self.server is not None and self.server.poll() is not None:
             self.server = None
 
-    def start_server(self, host, port, max_clients):
+    def start_server(self, host, port):
         if self.server is not None and self.server.poll() is None:
             return "Server already running"
-        self.server = self._spawn("Server.py", ["--host", host, "--port", str(port), "--max-clients", str(max_clients)])
+        self.server = self._spawn("Server.py", ["--host", host, "--port", str(port)])
         return "Server started"
 
     def stop_server(self):
@@ -139,7 +139,6 @@ processes = ProcessGroup()
 
 host_input = InputBox((42, 136, 280, 44), "127.0.0.1")
 port_input = InputBox((340, 136, 140, 44), "5000")
-max_clients_input = InputBox((500, 136, 140, 44), "4")
 
 status_lines = [
     "Ready",
@@ -161,14 +160,7 @@ def get_config():
     if port < 1 or port > 65535:
         raise ValueError("Port must be between 1 and 65535")
 
-    try:
-        max_clients = int(max_clients_input.text.strip())
-    except ValueError:
-        raise ValueError("Max clients must be an integer")
-    if max_clients < 1:
-        raise ValueError("Max clients must be >= 1")
-
-    return host, port, max_clients
+    return host, port
 
 
 buttons = [
@@ -191,9 +183,9 @@ while running:
             for button in buttons:
                 if button.click(event.pos):
                     try:
-                        host, port, max_clients = get_config()
+                        host, port = get_config()
                         if button.action == "start_server":
-                            set_status(processes.start_server("0.0.0.0", port, max_clients))
+                            set_status(processes.start_server("0.0.0.0", port))
                         elif button.action == "stop_server":
                             set_status(processes.stop_server())
                         elif button.action == "connect_client":
@@ -210,7 +202,6 @@ while running:
 
         host_input.handle(event)
         port_input.handle(event)
-        max_clients_input.handle(event)
 
     processes.cleanup_finished()
 
@@ -222,7 +213,7 @@ while running:
 
     host_input.draw(SCREEN, "Server host (for bots/clients)")
     port_input.draw(SCREEN, "Port")
-    max_clients_input.draw(SCREEN, "Max clients")
+    SCREEN.blit(small_font.render("Clients max : 4", True, MUTED), (500, 148))
 
     for button in buttons:
         button.draw(SCREEN)

@@ -27,7 +27,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Sorcer UDP server")
     parser.add_argument("--host", default="0.0.0.0", help="Listening host")
     parser.add_argument("--port", type=int, default=5000, help="Listening port")
-    parser.add_argument("--max-clients", type=int, default=4, help="Maximum connected clients")
     return parser.parse_args()
 
 
@@ -45,7 +44,7 @@ print(f"Serveur UDP en écoute {HOST}:{PORT}")
 clients = {}  # addr -> {"last_msg": ...}
 lock = threading.Lock()
 
-MAX_CLIENTS = max(1, int(args.max_clients))
+MAX_CLIENTS = 4
 
 # -------------------------
 # utils UDP
