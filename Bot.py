@@ -3,12 +3,22 @@ import socket
 import pickle
 import struct
 import threading
+import argparse
 import pygame
 from pygame import *
 pygame.init()
 
-HOST = "127.0.0.1"
-PORT = 5000
+def parse_args():
+    parser = argparse.ArgumentParser(description="Sorcer smart bot")
+    parser.add_argument("--host", default="127.0.0.1", help="Server host")
+    parser.add_argument("--port", type=int, default=5000, help="Server port")
+    return parser.parse_args()
+
+
+args = parse_args()
+
+HOST = args.host
+PORT = args.port
 
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client.connect((HOST, PORT))
