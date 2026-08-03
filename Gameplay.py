@@ -115,7 +115,7 @@ class Spell:
         target.tick_duration_counters()
 
 class Boule_feu(Spell):
-    """Inflige 25 points de dégâts au lanceur et 125 points de dégâts à la cible."""
+    """ Inflige 25 points de dégâts au lanceur et 125 points de dégâts à la cible. """
     def __init__(self):
         Spell.__init__(self, "Fireball", tc=100)
 
@@ -124,7 +124,7 @@ class Boule_feu(Spell):
         c.dammage(125)
 
 class Laser(Spell):
-    """Inflige 1 point de dégâts par tick à la cible pendant 200 ticks."""
+    """ Inflige 1 point de dégâts par tick à la cible pendant 200 ticks. """
     def __init__(self):
         Spell.__init__(self, "Laser", d=200)
 
@@ -132,7 +132,7 @@ class Laser(Spell):
         c.dammage(1)
 
 class Poison(Spell):
-    """Applique un poison qui inflige 25 dégâts toutes les 100 unités de temps pendant 1000 ticks."""
+    """ Applique un poison qui inflige 25 dégâts toutes les 100 unités de temps pendant 1000 ticks. """
     def __init__(self):
         Spell.__init__(self, "Poison")
         self.duree_poison = 1000
@@ -148,7 +148,7 @@ class Poison(Spell):
             c.dammage(25)
 
 class VolDeVie(Spell):
-    """Vole de la vie à la cible en infligeant 1 dégât et en soignant 1 point par tick pendant 50 ticks."""
+    """ Vole de la vie à la cible en infligeant 1 dégât et en soignant 1 point par tick pendant 50 ticks. """
     def __init__(self):
         Spell.__init__(self, "Life steal", d=50)
 
@@ -157,7 +157,7 @@ class VolDeVie(Spell):
         l.heal(1)
 
 class Soin(Spell):
-    """Soigne la cible de 100 points et supprime l'effet poison."""
+    """ Soigne la cible de 100 points et supprime l'effet poison. """
     def __init__(self):
         Spell.__init__(self, "Heal")
 
@@ -166,7 +166,7 @@ class Soin(Spell):
         c.time_poison = 0
 
 class Vitesse(Spell):
-    """Réduit de moitié le cooldown de tous les sorts de la cible."""
+    """ Réduit de moitié le cooldown de tous les sorts de la cible. """
     def __init__(self):
         Spell.__init__(self, "Speed")
 
@@ -175,7 +175,7 @@ class Vitesse(Spell):
             s.time_cooldown = int(s.time_cooldown / 2)
 
 class Interdiction(Spell):
-    """Empêche la cible d'utiliser le sort qu'elle est en train de lancer."""
+    """ Empêche indéfiniment la cible d'utiliser le sort qu'elle est en train de lancer ou jusqu'à une nouvelle interdiction. """
     def __init__(self):
         Spell.__init__(self, "Interdiction", tc=0)
         
@@ -184,7 +184,7 @@ class Interdiction(Spell):
             c.interdit = c.spell
 
 class LienSpirituel(Spell):
-    """Crée un lien spirituel entre le lanceur et la cible pendant 800 ticks."""
+    """ Crée un lien spirituel entre le lanceur et la cible pendant 800 ticks. """
     def __init__(self):
         Spell.__init__(self, "Spiritual link")
 
@@ -211,7 +211,7 @@ class LienSpirituel(Spell):
                     break
 
 class Silence(Spell):
-    """Silence la cible pendant 400 ticks."""
+    """ Silence la cible pendant 400 ticks. """
     def __init__(self):
         Spell.__init__(self, "Silence")
 
@@ -224,7 +224,7 @@ class Silence(Spell):
         self._tick_target_timers(l, c)
 
 class Renvoi(Spell):
-    """Active un renvoi pendant 200 ticks pour renvoyer des sorts ciblant la cible."""
+    """ Active un renvoi pendant 200 ticks pour renvoyer des sorts ciblant la cible. """
     def __init__(self):
         Spell.__init__(self, "Counter", tc=50, tl=200)
         self.effect_target = None
@@ -250,7 +250,7 @@ class Renvoi(Spell):
             target.time_renvoi -= 1
 
 class Exodia(Spell):
-    """Incrémente le compteur Exodia et élimine tous les adversaires quand il atteint 5."""
+    """ Incrémente le compteur Exodia et élimine tous les adversaires quand il atteint 5. """
     def __init__(self):
         Spell.__init__(self, "Exodia", c=4000)
 
@@ -266,7 +266,7 @@ class Exodia(Spell):
             l.nbr_exodia = 0
 
 class Multiplicateur(Spell):
-    """Inflige des dégâts croissants selon le compteur multiplicateur du lanceur."""
+    """ Inflige 40 dégats multiplié par le compteur multiplicateur du lanceur. """
     def __init__(self):
         Spell.__init__(self, "Multiplier")
 
@@ -275,7 +275,7 @@ class Multiplicateur(Spell):
         l.nbr_multiplicateur += 1
 
 class TicTac(Spell):
-    """Alterne entre deux dégâts : sur les PV actuels ou sur les PV manquants de la cible."""
+    """ Alterne entre deux dégâts : 20% sur les PV actuels ou 25% sur les PV manquants de la cible. """
     def __init__(self):
         Spell.__init__(self, "TicTac")
 
@@ -288,7 +288,7 @@ class TicTac(Spell):
             l.tictac = "tic"
 
 class Balance(Spell):
-    """Équilibre les PV du lanceur et de la cible en infligeant un tiers de la différence."""
+    """ Équilibre les PV du lanceur et de la cible en infligeant un tiers de la différence. """
     def __init__(self):
         Spell.__init__(self, "Balance")
 
@@ -297,15 +297,15 @@ class Balance(Spell):
         c.dammage((c.pv - l.pv)/3)
 
 class Renforcement(Spell):
-    """Augmente la PV maximale de la cible de 50 et la soigne de 25 points."""
+    """ Augmente les PV maximales de la cible de 75 et la soigne de 25 points. """
     def __init__(self):
         Spell.__init__(self, "Reinforcement")
     def effet(self, l, c, p):
-        c.pv_max += 50
+        c.pv_max += 75
         c.heal(25)
 
 class Specialisation(Spell):
-    """Réduit le cooldown du dernier sort lancé et le marque comme spécialisation."""
+    """ Marque le dernier sort lancé comme spécialisation, divisant sont cooldown par 4. """
     def __init__(self):
         Spell.__init__(self, "Specialisation")
 
@@ -315,7 +315,7 @@ class Specialisation(Spell):
             l.spell_specialisation = l.last_spell
 
 class Invincibilite(Spell):
-    """Rend la cible invincible pendant 250 ticks."""
+    """ Rend la cible invincible pendant 250 ticks. """
     def __init__(self):
         Spell.__init__(self, "Invincibility", tc=0, d=250)
 
@@ -328,7 +328,7 @@ class Invincibilite(Spell):
             self.time_cooldown -= 1
 
 class Treve(Spell):
-    """Accorde une trêve de 300 ticks au lanceur, empêchant probablement les agressions pendant sa durée."""
+    """ Accorde une trêve de 300 ticks au lanceur, empêchant le lancement de sorts pendant sa durée. """
     def __init__(self):
         Spell.__init__(self, "Truce", tc=10)
 
@@ -341,7 +341,7 @@ class Treve(Spell):
             self.time_cooldown -= 1
 
 class Clone(Spell):
-    """Applique un clone à la cible pendant 600 ticks."""
+    """ Applique un clone à la cible pendant 600 ticks. """
     def __init__(self):
         Spell.__init__(self, "Clone")
 
@@ -353,7 +353,7 @@ class Clone(Spell):
             self.time_cooldown -= 1
 
 class Retour(Spell):
-    """Enregistre la vie actuelle de la cible et la restaure à la fin de la durée."""
+    """ Enregistre la vie actuelle de la cible et la restaure à la fin de la durée de 300 ticks. """
     def __init__(self):
         Spell.__init__(self, "Timeback", tc=0, d=300)
 
@@ -400,7 +400,7 @@ class Coagulation(Spell):
         c.heal(1)
 
 class Regeneration(Spell):
-    """ Applique une régénération régulière à la cible pendant 500 ticks. """
+    """ Applique une régénération de 20 points de vie à la cible tous les 100 ticks pendant 500 ticks. """
     def __init__(self):
         Spell.__init__(self, "Regeneration")
         self.duree_regeneration = 500
@@ -415,7 +415,7 @@ class Regeneration(Spell):
             c.heal(20)
 
 class Annulation(Spell):
-    "" "Force le sort cible à s'achever immédiatement et met son cooldown à son maximum. """
+    """ Force le sort cible à s'achever immédiatement et met son cooldown à son maximum. """
     def __init__(self):
         Spell.__init__(self, "Cancelation", tc=50)
 
@@ -451,7 +451,7 @@ class Earthquake(Spell):
             player.dammage(150)
 
 class Acceleration(Spell):
-    """ Accélère les lancers (x2) et le lag (/2) du joueur ciblé ; annule Slow. """
+    """ Accélère les lancers (x2) et le lag (/2) du joueur ciblé ; annule Slow. Dure 2500 ticks. """
     def __init__(self):
         Spell.__init__(self, "Speed up")
         self.duree_acceleration = 2500
@@ -465,7 +465,7 @@ class Acceleration(Spell):
             self.time_cooldown -= 1
 
 class Ralentissement(Spell):
-    """ Ralentit les lancers (/2) et augmente les cooldowns (x2) du joueur ciblé ; annule Acceleration. """
+    """ Ralentit les lancers (/2) et augmente les cooldowns (x2) du joueur ciblé ; annule Acceleration. Dure 2500 ticks. """
     def __init__(self):
         Spell.__init__(self, "Slow")
         self.duree_slow = 2500
@@ -490,7 +490,7 @@ class VolDeTemps(Spell):
                     spell_l.time_cooldown = min(spell_c.time_cooldown, spell_l.time_cooldown)
 
 class Reanimation(Spell):
-    """ Si actif au moment où la cible devrait mourir, elle ressuscite avec pv_max/3 au lieu de mourir. """
+    """ Si actif au moment où la cible devrait mourir, elle ressuscite avec point de vie max divisé par 3 au lieu de mourir. 600 ticks. """
     def __init__(self):
         Spell.__init__(self, "Reanimation")
         self.duree_reanimation = 600
@@ -503,7 +503,7 @@ class Reanimation(Spell):
             self.time_cooldown -= 1
 
 class Puissance(Spell):
-    """ Cumule 1 dégat pour chaque 20 ticks durant lequel le lanceur n'a pas subit de dégats.
+    """ Cumule 1 dégat pour chaque 15 ticks durant lequel le lanceur n'a pas subit de dégats.
         Lorsque le sort est lancé, inflige tous les dégats cumulés à la cible.
         Le cumule est remis à 0 dès que le lanceur subit un dégât. """
     def __init__(self):
@@ -521,13 +521,13 @@ class Puissance(Spell):
             self.time_cooldown -= 1
         if l.pv > 0:
             l.puissance_ticks_since_damage += 1
-            while l.puissance_ticks_since_damage >= 20:
+            while l.puissance_ticks_since_damage >= 15:
                 l.time_puissance += 1
-                l.puissance_ticks_since_damage -= 20
+                l.puissance_ticks_since_damage -= 15
 
 
 class Deviation(Spell):
-    """ Force tous les joueurs à lancer ses sorts sur la cible, tant que l'effet dure. """
+    """ Force tous les joueurs à lancer ses sorts sur la cible pendant 600 ticks. """
     def __init__(self):
         Spell.__init__(self, "Deviation")
         self.duree_deviation = 600
@@ -541,15 +541,15 @@ class Deviation(Spell):
             self.time_cooldown -= 1
 
 class Baffe(Spell):
-    """Un coup rapide qui inflige 10 dégâts avec un cooldown court."""
+    """Un coup rapide qui inflige 15 dégâts avec un cooldown court."""
     def __init__(self):
         Spell.__init__(self, "Quick slap", c=int(cooldown_base/10), tc=20, tl=20)
 
     def effet(self, l, c, p):
-        c.dammage(10)
+        c.dammage(15)
 
 class Bouclier(Spell):
-    """ Réduit chaque source de dégâts de 25 et absorbe les dégâts supérieur à 150 pendant 4000 ticks. """
+    """ Réduit chaque source de dégâts de 25 et absorbe les dégâts supérieur à 150 pendant 3000 ticks. """
     def __init__(self):
         Spell.__init__(self, "Shield")
         self.duree_shield = 3000
@@ -573,7 +573,7 @@ class ConcentrationMagique(Spell):
         c.heal(5 * dispo)
 
 class PeineDeMort(Spell):
-    """ Après un très long délai, tue la cible sauf si elle est invincible, si le sort a été relancé
+    """ Après 3000 ticks, tue la cible sauf si elle est invincible, si le sort a été relancé
     entre-temps (délai réinitialisé) ou si Nettoyage a purgé le passif (délai remis à 0). """
     def __init__(self):
         Spell.__init__(self, "Death penalty", tc=200)
@@ -627,7 +627,7 @@ class RayonDeSoleil(Spell):
             self.charge = False
 
 class ConcentrationSorts(Spell):
-    """ Inflige 75 dégâts par sort actuellement en cours de lancement (start passé, pas encore terminé). """
+    """ Inflige 75 dégâts par sort actuellement en cours de lancement. """
     def __init__(self):
         Spell.__init__(self, "Spell concentration")
 
@@ -636,7 +636,7 @@ class ConcentrationSorts(Spell):
         c.dammage(75 * en_cours)
 
 class Repetition(Spell):
-    """Redéclenche immédiatement l'effet du dernier sort lancé par le lanceur."""
+    """Redéclenche immédiatement l'effet du dernier sort lancé par le lanceur. """
     def __init__(self):
         Spell.__init__(self, "Repeat")
 
@@ -645,7 +645,7 @@ class Repetition(Spell):
             l.last_spell.effet(l, c, p)
 
 class Impatience(Spell):
-    """Inflige des dégâts en fonction du cooldown total des sorts de la cible."""
+    """Inflige en dégâts la somme des cooldown des sorts de la cible divisé par 1000. """
     def __init__(self):
         Spell.__init__(self, "Impatience")
 
@@ -685,7 +685,7 @@ class Nettoyage(Spell):
         c.linked = []
 
 class Inversion(Spell):
-    """ Pendant sa durée, les dégâts subis par la cible deviennent des soins et inversement. """
+    """ Pendant une durée de 1000 ticks, les dégâts subis par la cible deviennent des soins et inversement. """
     def __init__(self):
         Spell.__init__(self, "Inversion", tc=100)
         self.duree_inversion = 1000
@@ -709,7 +709,7 @@ class ProjectileMagique(Spell):
             ally.dammage(75)
 
 class Canalisation(Spell):
-    """ Pendant sa durée, soigne la cible à chaque fois qu'un joueur (n'importe lequel) lance un sort. """
+    """ Pendant une durée de 800 ticks, soigne la cible à chaque fois qu'un joueur (n'importe lequel) lance un sort. """
     def __init__(self):
         Spell.__init__(self, "Channeling")
         self.duree_canalisation = 800
@@ -726,7 +726,7 @@ class Canalisation(Spell):
                     c.heal(15)
 
 class Aveuglement(Spell):
-    """ Pendant sa durée, la cible ne peut viser qu'elle-même. """
+    """ Pendant une durée de 800 ticks, la cible ne peut viser qu'elle-même. """
     def __init__(self):
         Spell.__init__(self, "Blindness")
         self.duree_aveuglement = 800
@@ -739,7 +739,7 @@ class Aveuglement(Spell):
             self.time_cooldown -= 1
 
 class Troc(Spell):
-    """ La puissance de ce sort commence à 0, augmente progressivement, puis est réinitialisée à 0 lorsqu'il est utilisé. """
+    """ La puissance de ce sort commence à 0, augmente progressivement, puis est réinitialisée à 0 lorsqu'il est utilisé par un joueur. """
     utilisation_totale = 0
     puissance = 0
 
@@ -766,7 +766,7 @@ class Tempo(Spell):
             s.c = max(200, s.c - 3000)
 
 class Marque(Spell):
-    """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 100% pendant sa durée. """
+    """ Rend la cible vulnérable : les dégâts qu'elle subit sont augmentés de 100% pendant sa durée pendant 800 ticks. """
     def __init__(self):
         Spell.__init__(self, "Mark")
         self.duree_marque = 800
