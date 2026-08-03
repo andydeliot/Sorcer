@@ -51,6 +51,9 @@ from random import choice
 
 running = True
 round_end_ready_sent = False
+planned_action = None
+action_lock_until = 0
+last_action_send = 0
 
 p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
 
@@ -210,6 +213,8 @@ while running:
     else:
         round_end_ready_sent = False
 
+    now = pygame.time.get_ticks()
+
     if p1.pv > 0 and p1.spell is None and p1.time_silence == 0:
         options = []
         for i, s in enumerate(p1.s):
@@ -220,15 +225,29 @@ while running:
                 options.append((i, cible))
 
         if options:
-            # En urgence, priorité au soutien si soi ou l'allié est en dessous de 40% de vie.
-            urgence = [
-                (i, c) for i, c in options
-                if CATEGORIE.get(type(p1.s[i])) == SUPPORT and (
-                    (c == 0 and p1.pv < p1.pv_max * 0.4) or
-                    (c == 1 and p2.pv > 0 and p2.pv < p2.pv_max * 0.4)
-                )
-            ]
-            n, cible = choice(urgence) if urgence else choice(options)
-            send_obj(str(n) + ";" + str(cible))
+            if planned_action not in options or now >= action_lock_until:
+                # En urgence, priorité au soutien si soi ou l'allié est en dessous de 40% de vie.
+                urgence = [
+                    (i, c) for i, c in options
+                    if CATEGORIE.get(type(p1.s[i])) == SUPPORT and (
+                        (c == 0 and p1.pv < p1.pv_max * 0.4) or
+                        (c == 1 and p2.pv > 0 and p2.pv < p2.pv_max * 0.4)
+                    )
+                ]
+                planned_action = choice(urgence) if urgence else choice(options)
+                action_lock_until = now + 450
+
+            # UDP peut perdre des paquets: on renvoie périodiquement la même action
+            # tant qu'aucun sort n'a démarré.
+            if planned_action is not None and now - last_action_send >= 120:
+                n, cible = planned_action
+                send_obj(str(n) + ";" + str(cible))
+                last_action_send = now
+        else:
+            planned_action = None
+            action_lock_until = 0
+    else:
+        planned_action = None
+        action_lock_until = 0
 
     clock.tick(50)

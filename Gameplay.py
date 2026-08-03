@@ -252,7 +252,7 @@ class Renvoi(Spell):
 class Exodia(Spell):
     """ Incrémente le compteur Exodia et élimine tous les adversaires quand il atteint 5. """
     def __init__(self):
-        Spell.__init__(self, "Exodia", c=4000)
+        Spell.__init__(self, "Exodia")
 
     def effet(self, l, c, p):
         l.nbr_exodia += 1
@@ -1022,7 +1022,9 @@ def loop(commands):
             except ValueError:
                 cible = None
 
-        if cible is not None:
+        # Ne pas laisser les commandes réseau re-cibler un sort déjà en cours.
+        # Cela évite le clignotement des flèches et les retargets en plein cast.
+        if cible is not None and p.spell is None:
             try:
                 if p is p1:
                     p.cible = [p1, p2, p3, p4][cible]
