@@ -1,6 +1,6 @@
 import copy
 
-difficulte  = 26
+difficulte  = 3
 cooldown_base = int(15000/26) * difficulte
 
 team_scores = [0, 0]
@@ -143,6 +143,8 @@ class Poison(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
+        if c is None:
+            return
         self._tick_target_timers(l, c)
         if c.time_poison % 100 == 1:
             c.dammage(25)
@@ -195,6 +197,8 @@ class LienSpirituel(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
+        if c is None:
+            return
         for link in l.linked:
             if link[1] == l and link[2] == c:
                 if link[0] > 0:
@@ -221,6 +225,8 @@ class Silence(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
+        if c is None:
+            return
         self._tick_target_timers(l, c)
 
 class Renvoi(Spell):
@@ -236,6 +242,8 @@ class Renvoi(Spell):
     def passive(self, l, c, p):
         if self.time_cooldown > 0:
             self.time_cooldown -= 1
+        if c is None and getattr(self, "effect_target", None) is None:
+            return
         if getattr(self, "effect_target", None) is None:
             if not getattr(self, "started", False):
                 return
@@ -739,7 +747,7 @@ class Aveuglement(Spell):
             self.time_cooldown -= 1
 
 class Troc(Spell):
-    """ La puissance de ce sort commence à 0, augmente progressivement, puis est réinitialisée à 0 lorsqu'il est utilisé par un joueur. """
+    """ La puissance de ce sort commence à 0, augmente de 1 tous les 100 ticks, puis est réinitialisée à 0 lorsqu'il est utilisé par un joueur. """
     utilisation_totale = 0
     puissance = 0
 
@@ -748,7 +756,7 @@ class Troc(Spell):
 
     def effet(self, l, c, p):
         Troc.utilisation_totale += 1
-        degats = max(0, int(Troc.puissance/10))
+        degats = max(0, int(Troc.puissance/100))
         c.dammage(degats)
         Troc.puissance = 0
 
@@ -1042,6 +1050,9 @@ def loop(commands):
         if forced_deviation_target is not None:
             p.cible = forced_deviation_target
 
+        if p.cible is not None and getattr(p.cible, "pv", 0) <= 0:
+            p.cible = None
+
         if n != "":
             try:
                 n = int(n)
@@ -1049,19 +1060,23 @@ def loop(commands):
                 n = ""
         if n != "":
             if p.spell is None:
-                try:
-                    p.spell = p.s[n]
-                    p.spell = None if p.spell.time_cooldown > 0 else p.spell
-                    p.spell = None if p.spell is p.interdit else p.spell
-                    p.spell = None if p.time_silence > 0 else p.spell
-                    p.spell = None if p.pv <= 0 else p.spell
-                except IndexError:
+                valid_target = p.cible is not None and getattr(p.cible, "pv", 0) > 0
+                if not valid_target:
                     p.spell = None
-                for player in players:
-                    if player.time_treve > 0:
+                else:
+                    try:
+                        p.spell = p.s[n]
+                        p.spell = None if p.spell.time_cooldown > 0 else p.spell
+                        p.spell = None if p.spell is p.interdit else p.spell
+                        p.spell = None if p.time_silence > 0 else p.spell
+                        p.spell = None if p.pv <= 0 else p.spell
+                    except IndexError:
                         p.spell = None
-                if p.spell is not None:
-                    print(f"Spell p{i+1} :", p.spell, "; Target :", cible)
+                    for player in players:
+                        if player.time_treve > 0:
+                            p.spell = None
+                    if p.spell is not None:
+                        print(f"Spell p{i+1} :", p.spell, "; Target :", cible)
 
     for p in players:
         p._duration_tick_done = False
@@ -1073,12 +1088,17 @@ def loop(commands):
         s = p.spell
         if s is not None:
             if p.pv > 0:
-                s.start(p, p.cible, players)
-                if p.cible.time_renvoi > 0:
+                target = p.cible
+                if target is None or getattr(target, "pv", 0) <= 0:
+                    p.spell = None
+                    p.busy = False
+                    continue
+                s.start(p, target, players)
+                if getattr(target, "time_renvoi", 0) > 0:
                     s.action(p, p, players)
                 else:
-                    s.action(p, p.cible, players)
-                s.end(p, p.cible, players)
+                    s.action(p, target, players)
+                s.end(p, target, players)
             else:
                 p.spell = None
                 p.busy = False
@@ -1091,14 +1111,17 @@ def loop(commands):
     for p in players:
         if p.time_clone > 0:
             if p.spell is not None:
+                target = p.cible
+                if target is None or getattr(target, "pv", 0) <= 0:
+                    continue
                 s_clone = copy.copy(p.spell)
                 if s_clone is not None:
-                    s_clone.start(p, p.cible, players)
-                    if p.cible.time_renvoi > 0:
+                    s_clone.start(p, target, players)
+                    if getattr(target, "time_renvoi", 0) > 0:
                         s_clone.action(p, p, players)
                     else:
-                        s_clone.action(p, p.cible, players)
-                    s_clone.end(p, p.cible, players)
+                        s_clone.action(p, target, players)
+                    s_clone.end(p, target, players)
 
     update_team_scores(players)
 

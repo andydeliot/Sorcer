@@ -1,253 +1,265 @@
-from Gameplay import *
+from Gameplay import Sorcer, spells
 import socket
 import pickle
 import struct
 import threading
 import argparse
-import pygame
-from pygame import *
-pygame.init()
+import time
+from typing import Dict, List, Optional, Tuple
 
-def parse_args():
+
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sorcer smart bot")
     parser.add_argument("--host", default="127.0.0.1", help="Server host")
     parser.add_argument("--port", type=int, default=5000, help="Server port")
+    parser.add_argument("--tick", type=float, default=0.08, help="Decision tick in seconds")
     return parser.parse_args()
 
 
 args = parse_args()
-
 HOST = args.host
 PORT = args.port
+TICK_SECONDS = max(0.03, float(args.tick))
 
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client.connect((HOST, PORT))
 
-# -------------------------
-# send
-# -------------------------
-def send_obj(obj):
+state_lock = threading.Lock()
+players_state = [Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)]
+last_state_ts = 0.0
+
+
+def send_obj(obj: str) -> None:
     data = pickle.dumps(obj)
     size = struct.pack("!I", len(data))
     client.sendto(size + data, (HOST, PORT))
 
-# -------------------------
-# receive
-# -------------------------
-def recv_loop():
-    global p1, p2, p3, p4
+
+def recv_loop() -> None:
+    global players_state, last_state_ts
     while True:
-        data, _ = client.recvfrom(65536)
-        size = struct.unpack("!I", data[:4])[0]
-        p1, p2, p3, p4 = pickle.loads(data[4:4+size])
+        try:
+            data, _ = client.recvfrom(65536)
+            size = struct.unpack("!I", data[:4])[0]
+            payload = pickle.loads(data[4:4 + size])
+            new_players = None
+            if isinstance(payload, dict):
+                maybe_players = payload.get("players")
+                if isinstance(maybe_players, list) and len(maybe_players) == 4:
+                    new_players = maybe_players
+            elif isinstance(payload, list) and len(payload) == 4:
+                new_players = payload
+
+            if new_players is not None:
+                with state_lock:
+                    players_state = new_players
+                    last_state_ts = time.time()
+        except Exception:
+            # Keep bot alive even if one packet is malformed.
+            continue
+
 
 threading.Thread(target=recv_loop, daemon=True).start()
 
-# -------------------------
-# send loop
-# -------------------------
 
-from random import choice
-
-running = True
-round_end_ready_sent = False
-planned_action = None
-action_lock_until = 0
-last_action_send = 0
-
-p1, p2, p3, p4 = Sorcer(spells), Sorcer(spells), Sorcer(spells), Sorcer(spells)
-
-# --------------------------------------------------------------------------
-# Rappel : dans la vue reçue du serveur, p1 = soi-même, p2 = allié, p3/p4 =
-# ennemis. cible=0 -> p1 (soi), 1 -> p2 (allié), 2 -> p3 (ennemi), 3 -> p4
-# (ennemi). C'est exactement ce que loop() attend côté serveur.
-#
-# Chaque sort est classé selon qui il est censé avantager, pour que la cible
-# choisie corresponde à son effet réel plutôt qu'à un tirage aveugle.
-# --------------------------------------------------------------------------
-SELF = "self"                     # l'effet ignore c, ou c'est un buff purement personnel.
-SUPPORT = "support"                # bénéfique -> vise soi ou l'allié, selon qui en a le plus besoin.
-ENEMY = "enemy"                    # offensif -> vise l'ennemi vivant le plus faible (achever).
-ENEMY_HIGH = "enemy_high"          # vise l'ennemi vivant le plus fort (comeback / neutralisation).
-ENEMY_CASTING = "enemy_casting"    # inutile si aucun ennemi n'a de sort en cours.
-CLEANSE = "cleanse"                # dynamique : purge un allié affaibli ou un ennemi buffé.
-EXTEND = "extend"                  # dynamique : prolonge un debuff ennemi ou un buff allié.
-MIRROR = "mirror"                  # rejoue le dernier sort -> reprend sa catégorie.
-
-CATEGORIE = {
-    Boule_feu: ENEMY, Laser: ENEMY, Poison: ENEMY, VolDeVie: ENEMY,
-    Soin: SUPPORT, Vitesse: SUPPORT, Interdiction: ENEMY_CASTING,
-    LienSpirituel: SUPPORT, Silence: ENEMY, Renvoi: SUPPORT,
-    Exodia: ENEMY, Multiplicateur: ENEMY, TicTac: ENEMY, Balance: ENEMY_HIGH,
-    Renforcement: SUPPORT, Specialisation: SELF, Invincibilite: SUPPORT,
-    Treve: SELF, Clone: SUPPORT, Retour: SUPPORT, Flash: ENEMY, Canon: ENEMY,
-    Coagulation: SUPPORT, Regeneration: SUPPORT, Annulation: ENEMY_CASTING,
-    VolDeSort: ENEMY_CASTING, Earthquake: ENEMY,
-    Acceleration: SUPPORT, Ralentissement: ENEMY, VolDeTemps: ENEMY,
-    Reanimation: SUPPORT, Puissance: ENEMY, Deviation: ENEMY_HIGH, Baffe: ENEMY,
-    Bouclier: SUPPORT, ConcentrationMagique: ENEMY, PeineDeMort: ENEMY,
-    Esprit: ENEMY, Difference: ENEMY, RayonDeSoleil: ENEMY,
-    ConcentrationSorts: ENEMY, Repetition: MIRROR, Impatience: ENEMY,
-    Nettoyage: CLEANSE, Inversion: ENEMY, ProjectileMagique: ENEMY,
-    Canalisation: SUPPORT, Aveuglement: ENEMY_HIGH, Troc: ENEMY, Tempo: SUPPORT,
-    Prolongation: EXTEND, Marque: ENEMY,
-}
-
-# Compteurs de statut considérés comme un désavantage (bon à purger sur soi/allié,
-# bon à prolonger sur un ennemi) ou un avantage (inverse) pour Nettoyage/Prolongation.
-DEBUFFS = [
-    "time_poison", "time_silence", "time_slow", "time_marque",
-    "time_death_penalty", "time_aveuglement", "time_puissance",
-    "time_deviation", "time_inversion",
-]
-BUFFS = [
-    "time_invincibilite", "time_treve", "time_clone", "time_regeneration",
-    "time_acceleration", "time_reanimation", "time_shield", "time_canalisation",
-]
+def spell_map(player) -> Dict[str, Tuple[int, object]]:
+    mapping: Dict[str, Tuple[int, object]] = {}
+    for idx, spell in enumerate(player.s):
+        mapping[spell.n] = (idx, spell)
+    return mapping
 
 
-def ennemis_vivants():
-    return [(idx, pl) for idx, pl in [(2, p3), (3, p4)] if pl.pv > 0]
-
-
-def cible_ennemi_faible():
-    """ Ennemi vivant avec le moins de PV (achever), sinon un repli arbitraire. """
-    vivants = ennemis_vivants()
-    return min(vivants, key=lambda t: t[1].pv)[0] if vivants else 2
-
-
-def cible_ennemi_fort():
-    """ Ennemi vivant avec le plus de PV. """
-    vivants = ennemis_vivants()
-    return max(vivants, key=lambda t: t[1].pv)[0] if vivants else 2
-
-
-def cible_ennemi_en_train_de_lancer():
-    """ Un ennemi actuellement en train de lancer un sort, sinon None (sort inutile ce tour-ci). """
-    for idx, pl in ennemis_vivants():
-        if pl.spell is not None:
-            return idx
-    return None
-
-
-def cible_soutien():
-    """ Entre soi et l'allié vivant, celui dont les PV proportionnels sont les plus bas. """
-    if p2.pv <= 0:
-        return 0
-    if p1.pv <= 0:
-        return 1
-    ratio_self = p1.pv / p1.pv_max
-    ratio_ally = p2.pv / p2.pv_max
-    return 0 if ratio_self <= ratio_ally else 1
-
-
-def a_un_debuff(joueur):
-    return any(getattr(joueur, attr, 0) > 0 for attr in DEBUFFS)
-
-
-def a_un_buff(joueur):
-    return any(getattr(joueur, attr, 0) > 0 for attr in BUFFS)
-
-
-def cible_purge():
-    """ Nettoyage : soigne d'abord un allié gêné, sinon dépouille un ennemi de ses buffs. """
-    if a_un_debuff(p1):
-        return 0
-    if p2.pv > 0 and a_un_debuff(p2):
-        return 1
-    for idx, pl in ennemis_vivants():
-        if a_un_buff(pl):
-            return idx
-    return None
-
-
-def cible_extension():
-    """ Prolongation : aggrave un debuff ennemi actif, sinon prolonge un buff allié actif. """
-    for idx, pl in ennemis_vivants():
-        if a_un_debuff(pl):
-            return idx
-    if a_un_buff(p1):
-        return 0
-    if p2.pv > 0 and a_un_buff(p2):
-        return 1
-    return None
-
-
-def choisir_cible(categorie):
-    if categorie == SELF:
-        return 0
-    if categorie == SUPPORT:
-        return cible_soutien()
-    if categorie == ENEMY:
-        return cible_ennemi_faible()
-    if categorie == ENEMY_HIGH:
-        return cible_ennemi_fort()
-    if categorie == ENEMY_CASTING:
-        return cible_ennemi_en_train_de_lancer()
-    if categorie == CLEANSE:
-        return cible_purge()
-    if categorie == EXTEND:
-        return cible_extension()
-    if categorie == MIRROR:
-        if p1.last_spell is not None:
-            cat = CATEGORIE.get(type(p1.last_spell), ENEMY)
-            if cat == MIRROR:
-                cat = ENEMY
-            return choisir_cible(cat)
+def choose_lowest_hp(players: List[object], indexes: List[int]) -> Optional[int]:
+    alive = [i for i in indexes if players[i].pv > 0]
+    if not alive:
         return None
-    return cible_ennemi_faible()
+    return min(alive, key=lambda i: players[i].pv)
 
 
-def manche_terminee():
-    return (p1.pv <= 0 and p2.pv <= 0) or (p3.pv <= 0 and p4.pv <= 0)
+def choose_highest_threat_enemy(players: List[object], indexes: List[int]) -> Optional[int]:
+    alive = [i for i in indexes if players[i].pv > 0]
+    if not alive:
+        return None
+
+    def threat_score(i: int) -> Tuple[int, int, int]:
+        enemy = players[i]
+        has_spell = 1 if enemy.spell is not None else 0
+        started = 1 if (enemy.spell is not None and getattr(enemy.spell, "started", False)) else 0
+        near_release = 0
+        if enemy.spell is not None:
+            tc = max(1, int(getattr(enemy.spell, "tc", 1)))
+            charge = int(getattr(enemy.spell, "time_charge", 0))
+            near_release = 1 if charge >= int(tc * 0.6) else 0
+        return (has_spell, started + near_release, enemy.pv_max - enemy.pv)
+
+    return max(alive, key=threat_score)
 
 
-clock = pygame.time.Clock()
-while running:
-    if manche_terminee():
-        if not round_end_ready_sent:
-            send_obj("READY")
-            round_end_ready_sent = True
-        clock.tick(50)
-        continue
-    else:
-        round_end_ready_sent = False
+def target_not_countered(players: List[object], preferred: int) -> Optional[int]:
+    if players[preferred].pv <= 0:
+        return None
+    if getattr(players[preferred], "time_renvoi", 0) <= 0:
+        return preferred
 
-    now = pygame.time.get_ticks()
+    enemies = [2, 3]
+    alternatives = [i for i in enemies if players[i].pv > 0 and getattr(players[i], "time_renvoi", 0) <= 0]
+    if alternatives:
+        return min(alternatives, key=lambda i: players[i].pv)
+    return preferred
 
-    if p1.pv > 0 and p1.spell is None and p1.time_silence == 0:
-        options = []
-        for i, s in enumerate(p1.s):
-            if s.time_cooldown > 0 or s is p1.interdit:
+
+def choose_command(players: List[object]) -> str:
+    me = players[0]
+    ally = players[1]
+
+    # Keep the round active but avoid trying to cast when we cannot.
+    keepalive_target = 2 if players[2].pv > 0 else 3
+    keepalive_target = keepalive_target if players[keepalive_target].pv > 0 else 0
+
+    if me.pv <= 0:
+        return f";{keepalive_target}"
+    if me.spell is not None:
+        return f";{keepalive_target}"
+    if me.time_silence > 0:
+        return f";{keepalive_target}"
+    if any(p.time_treve > 0 for p in players):
+        return f";{keepalive_target}"
+
+    sm = spell_map(me)
+
+    def ready(name: str) -> bool:
+        pair = sm.get(name)
+        return pair is not None and pair[1].time_cooldown <= 0 and pair[1] is not me.interdit
+
+    def cast(name: str, target_idx: int) -> Optional[str]:
+        pair = sm.get(name)
+        if pair is None:
+            return None
+        idx, spell = pair
+        if spell.time_cooldown > 0 or spell is me.interdit:
+            return None
+        if target_idx < 0 or target_idx >= len(players) or players[target_idx].pv <= 0:
+            return None
+        return f"{idx};{target_idx}"
+
+    enemy_low = choose_lowest_hp(players, [2, 3])
+    enemy_threat = choose_highest_threat_enemy(players, [2, 3])
+    ally_low = choose_lowest_hp(players, [0, 1])
+
+    if enemy_low is None:
+        return f";0"
+
+    my_hp_ratio = me.pv / max(1, me.pv_max)
+    ally_hp_ratio = ally.pv / max(1, ally.pv_max)
+    enemy_low_hp_ratio = players[enemy_low].pv / max(1, players[enemy_low].pv_max)
+
+    # 1) Emergency survival.
+    if my_hp_ratio < 0.30:
+        for spell_name in ["Invincibility", "Heal", "Shield", "Reanimation", "Regeneration", "Coagulation", "Truce", "Life steal"]:
+            if ready(spell_name):
+                cmd = cast(spell_name, 0)
+                if cmd is not None:
+                    return cmd
+
+    # 2) Ally stabilization.
+    if ally_hp_ratio < 0.35 and ally_low is not None:
+        for spell_name in ["Invincibility", "Heal", "Shield", "Reanimation", "Regeneration", "Coagulation"]:
+            if ready(spell_name):
+                cmd = cast(spell_name, 1)
+                if cmd is not None:
+                    return cmd
+
+    # 3) Interrupt dangerous enemy casts first.
+    if enemy_threat is not None and players[enemy_threat].spell is not None:
+        for spell_name in ["Cancelation", "Interdiction", "Silence", "Blindness", "Deviation", "Slow"]:
+            if ready(spell_name):
+                cmd = cast(spell_name, enemy_threat)
+                if cmd is not None:
+                    return cmd
+
+    # 4) Offensive setup debuffs.
+    if enemy_low is not None:
+        if ready("Mark") and players[enemy_low].time_marque <= 0:
+            cmd = cast("Mark", enemy_low)
+            if cmd is not None:
+                return cmd
+        if ready("Poison") and players[enemy_low].time_poison <= 0:
+            cmd = cast("Poison", enemy_low)
+            if cmd is not None:
+                return cmd
+        if ready("Slow") and players[enemy_low].time_slow <= 0:
+            cmd = cast("Slow", enemy_low)
+            if cmd is not None:
+                return cmd
+
+    # 5) Finisher logic.
+    if enemy_low_hp_ratio <= 0.12 and ready("Flash"):
+        safe_target = target_not_countered(players, enemy_low)
+        if safe_target is not None:
+            cmd = cast("Flash", safe_target)
+            if cmd is not None:
+                return cmd
+
+    # 6) Buff self for stronger exchanges.
+    for spell_name in ["Speed up", "Puissance", "Magic concentration", "Shield", "Spell concentration"]:
+        if ready(spell_name):
+            cmd = cast(spell_name, 0)
+            if cmd is not None:
+                return cmd
+
+    # 7) Main damage rotation.
+    for spell_name in [
+        "Cannon",
+        "Fireball",
+        "Magic projectile",
+        "Sun ray",
+        "Earthquake",
+        "Laser",
+        "Life steal",
+        "Multiplier",
+        "Quick slap",
+        "TicTac",
+        "Balance",
+        "Difference",
+        "Trade",
+    ]:
+        if ready(spell_name):
+            safe_target = target_not_countered(players, enemy_low)
+            if safe_target is None:
+                safe_target = enemy_low
+            # Fireball has recoil, avoid suicidal casts.
+            if spell_name == "Fireball" and me.pv <= 70:
                 continue
-            cible = choisir_cible(CATEGORIE.get(type(s), ENEMY))
-            if cible is not None:
-                options.append((i, cible))
+            cmd = cast(spell_name, safe_target)
+            if cmd is not None:
+                return cmd
 
-        if options:
-            if planned_action not in options or now >= action_lock_until:
-                # En urgence, priorité au soutien si soi ou l'allié est en dessous de 40% de vie.
-                urgence = [
-                    (i, c) for i, c in options
-                    if CATEGORIE.get(type(p1.s[i])) == SUPPORT and (
-                        (c == 0 and p1.pv < p1.pv_max * 0.4) or
-                        (c == 1 and p2.pv > 0 and p2.pv < p2.pv_max * 0.4)
-                    )
-                ]
-                planned_action = choice(urgence) if urgence else choice(options)
-                action_lock_until = now + 450
+    # 8) Utility / opportunistic casts.
+    for spell_name in ["Tempo", "Specialisation", "Repeat", "Inversion", "Channeling", "Clean", "Spiritual link", "Prolongation", "Death penalty"]:
+        if ready(spell_name):
+            target_idx = enemy_low if spell_name not in {"Specialisation", "Nettoyage"} else 0
+            cmd = cast(spell_name, target_idx)
+            if cmd is not None:
+                return cmd
 
-            # UDP peut perdre des paquets: on renvoie périodiquement la même action
-            # tant qu'aucun sort n'a démarré.
-            if planned_action is not None and now - last_action_send >= 120:
-                n, cible = planned_action
-                send_obj(str(n) + ";" + str(cible))
-                last_action_send = now
-        else:
-            planned_action = None
-            action_lock_until = 0
-    else:
-        planned_action = None
-        action_lock_until = 0
+    # 9) Last fallback: cast first ready spell on lowest enemy.
+    for idx, spell in enumerate(me.s):
+        if spell.time_cooldown <= 0 and spell is not me.interdit:
+            safe_target = target_not_countered(players, enemy_low)
+            if safe_target is None:
+                safe_target = enemy_low
+            return f"{idx};{safe_target}"
 
-    clock.tick(50)
+    return f";{keepalive_target}"
+
+
+last_send = 0.0
+while True:
+    now = time.time()
+    if now - last_send >= TICK_SECONDS:
+        with state_lock:
+            snapshot = list(players_state)
+        command = choose_command(snapshot)
+        send_obj(command)
+        last_send = now
+    time.sleep(0.01)

@@ -163,16 +163,49 @@ class TestSpellLifecycle:
         spell.time_charge = spell.tc
         spell.duree = 0
         caster.spell = spell
+        caster.cible = target
         caster.pv = caster.pv_max
         target.pv = target.pv_max
 
-        gp.loop(["0;1", "0;0", "0;0", "0;0"])
+        gp.loop(["1;1", "0;0", "0;0", "0;0"])
         assert target.pv == target.pv_max - 1
 
         caster.pv = 0
-        gp.loop(["0;1", "0;0", "0;0", "0;0"])
+        gp.loop(["1;1", "0;0", "0;0", "0;0"])
 
         assert target.pv == target.pv_max - 1
+
+    def test_dead_target_does_not_cast_on_self(self):
+        gp.start()
+        caster = gp.p1
+        target = gp.p3
+        target.pv = 0
+
+        initial_pv = caster.pv
+        caster.cible = target
+
+        gp.loop(["0;2", "0;0", "0;0", "0;0"])
+
+        assert caster.pv == initial_pv
+        assert caster.spell is None
+
+    def test_dead_target_stops_current_spell_without_crashing(self):
+        gp.start()
+        caster = gp.p1
+        target = gp.p3
+        target.pv = 0
+
+        spell = Laser()
+        spell.started = True
+        spell.time_charge = spell.tc
+        spell.duree = 0
+        caster.spell = spell
+        caster.cible = target
+
+        gp.loop(["0;2", "0;0", "0;0", "0;0"])
+
+        assert caster.spell is None
+        assert caster.busy is False
 
     def test_specialisation_cuts_cooldown_to_a_third(self, caster, target, players):
         spell = Boule_feu()
